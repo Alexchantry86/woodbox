@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Due diligence — Projet Wood Box</title>
+<style>
+  .ddq * { box-sizing: border-box; }
+  .ddq { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #1A1F2B; }
+  .ddq input, .ddq select, .ddq textarea, .ddq button { font-family: inherit; font-size: 13px; }
+  .ddq button { cursor: pointer; }
+  .ddq ::placeholder { color: #9AA2AF; }
+  .ddq-overlay { position: fixed; inset: 0; background: rgba(20,40,80,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+  .ddq-modal { background: #fff; border-radius: 14px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+  .ddq-modal::-webkit-scrollbar { width: 8px; }
+  .ddq-modal::-webkit-scrollbar-thumb { background: #D8DBE0; border-radius: 4px; }
+  .ddq-qrow:hover { border-color: #C9CDD4 !important; background: #FAFBFC; }
+  .ddq-exp:hover { background: #F0F3F8 !important; }
+</style>
+</head>
+<body>
+
+<div class="ddq" style="max-width:1160px;margin:0 auto;padding:1.25rem 0;position:relative;">
+
+  <div id="ddq-lock" style="display:none;min-height:320px;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+    <div style="font-size:18px;font-weight:600;color:#142850;">Due diligence — Projet Wood Box</div>
+    <div style="font-size:13px;color:#5B6472;">Accès protégé — entrez le mot de passe pour continuer</div>
+    <div style="display:flex;gap:8px;">
+      <input id="ddq-pwd-input" type="password" placeholder="Mot de passe" style="border:1px solid #E2E5EA;border-radius:8px;padding:8px 12px;width:200px;" />
+      <button id="ddq-pwd-submit" style="background:#142850;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:600;">Entrer</button>
+    </div>
+    <div id="ddq-pwd-error" style="font-size:12px;color:#A32D2D;display:none;">Mot de passe incorrect.</div>
+  </div>
+
+  <div id="ddq-app" style="display:none;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;">
+      <div>
+        <div style="font-size:20px;font-weight:600;color:#142850;">Due diligence — Projet Wood Box</div>
+        <div style="font-size:13px;color:#5B6472;margin-top:2px;">Suivi des questions et réponses par thématique</div>
+      </div>
+      <div id="ddq-stats" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div style="margin-bottom:18px;position:relative;display:inline-block;">
+      <button id="ddq-download-btn" style="display:flex;align-items:center;gap:8px;border:1px solid #E2E5EA;background:#142850;color:#fff;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:600;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Télécharger
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div id="ddq-download-menu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid #E2E5EA;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:260px;z-index:50;overflow:hidden;">
+        <button id="ddq-exp-xlsx-simple" class="ddq-exp" style="display:block;width:100%;text-align:left;border:none;background:#fff;padding:10px 14px;font-size:12.5px;color:#1F7A4D;border-bottom:1px solid #F0F1F3;">Excel — questions</button>
+        <button id="ddq-exp-xlsx-full" class="ddq-exp" style="display:block;width:100%;text-align:left;border:none;background:#fff;padding:10px 14px;font-size:12.5px;color:#1F7A4D;border-bottom:1px solid #F0F1F3;">Excel — questions + échanges</button>
+        <button id="ddq-exp-pdf-simple" class="ddq-exp" style="display:block;width:100%;text-align:left;border:none;background:#fff;padding:10px 14px;font-size:12.5px;color:#A32D2D;border-bottom:1px solid #F0F1F3;">PDF — questions</button>
+        <button id="ddq-exp-pdf-full" class="ddq-exp" style="display:block;width:100%;text-align:left;border:none;background:#fff;padding:10px 14px;font-size:12.5px;color:#A32D2D;">PDF — questions + échanges</button>
+      </div>
+    </div>
+
+    <div id="ddq-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px;"></div>
+
+    <div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:16px 18px;">
+      <div style="font-size:13px;font-weight:600;color:#142850;margin-bottom:12px;">Suivi du traitement des questions</div>
+      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px;" id="ddq-dash-grid">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#5B6472;margin-bottom:8px;text-transform:uppercase;letter-spacing:.02em;">Par typologie</div>
+          <div id="ddq-dash-theme"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#5B6472;margin-bottom:8px;text-transform:uppercase;letter-spacing:.02em;">Par priorité</div>
+          <div id="ddq-dash-prio"></div>
+          <div style="font-size:11px;font-weight:600;color:#5B6472;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.02em;">Évolution des clôtures</div>
+          <div id="ddq-dash-evo"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #F0F1F3;">
+        <span style="font-size:10.5px;color:#5B6472;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#5B6472;margin-right:4px;"></span>Ouverte</span>
+        <span style="font-size:10.5px;color:#5B6472;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#2E5395;margin-right:4px;"></span>En cours</span>
+        <span style="font-size:10.5px;color:#5B6472;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#8A5A1F;margin-right:4px;"></span>Répondue</span>
+        <span style="font-size:10.5px;color:#5B6472;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#1F7A4D;margin-right:4px;"></span>Clôturée</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="ddq-modals"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+(function(){
+
+var APP_PASSWORD = "WOODBOX2026";
+
+var THEMES = [
+  { id:"deal", label:"Deal — Process / Agenda", code:"DE", color:"#3B3F8C", bg:"#E9E9F5" },
+  { id:"rh",   label:"RH",                    code:"RH", color:"#1F7A4D", bg:"#E3F5EA" },
+  { id:"org",  label:"Organisation - Synergie Groupe", code:"OR", color:"#6B7A1F", bg:"#EFF3DC" },
+  { id:"bat",  label:"Bâtiment / Immobilier",  code:"BA", color:"#2E5395", bg:"#E6ECF7" },
+  { id:"com",  label:"Commercial",             code:"CO", color:"#C1652C", bg:"#FBEBE0" },
+  { id:"fin",  label:"Financement / Comptable",code:"FI", color:"#8A5A1F", bg:"#FBF2DF" },
+  { id:"ach",  label:"Achats / Fournisseurs",  code:"AC", color:"#6B4A9E", bg:"#EFE9F7" },
+  { id:"mac",  label:"Parc Machines / Industriel", code:"PM", color:"#1F7A94", bg:"#E3F3F6" },
+  { id:"jur",  label:"Juridique / Fiscal / Social", code:"JU", color:"#A33D3D", bg:"#F7E7E7" },
+  { id:"si",   label:"Assurances / Systèmes d'Information", code:"AS", color:"#4A4F5A", bg:"#ECEDEF" }
+];
+
+var PRIORITIES = ["Haute","Moyenne","Basse"];
+var STATUTS = ["Ouverte","En cours","Répondue","Clôturée"];
+var STATUT_COLOR = { "Ouverte":"#5B6472", "En cours":"#2E5395", "Répondue":"#8A5A1F", "Clôturée":"#1F7A4D" };
+
+var PRIO_STYLE = {
+  "Haute":   { c:"#A32D2D", bg:"#FBEAE8" },
+  "Moyenne": { c:"#8A5A1F", bg:"#FBF2DF" },
+  "Basse":   { c:"#5B6472", bg:"#EEF0F3" }
+};
+
+var AUTHOR_COLORS = ["#2E5395","#1F7A4D","#8A5A1F","#6B4A9E","#A33D3D","#1F7A94","#C1652C"];
+function authorColor(name){
+  var s = String(name||"?"); var h = 0;
+  for (var i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) % 997; }
+  return AUTHOR_COLORS[h % AUTHOR_COLORS.length];
+}
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function initials(name){ var s=String(name||"?").trim(); var parts=s.split(/\s+/); if(parts.length>=2) return (parts[0][0]+parts[1][0]).toUpperCase(); return s.slice(0,2).toUpperCase(); }
+
+function seedQuestions(){
+  var now = new Date().toISOString();
+  function q(theme, text, priorite, owner, statut){
+    return { id: uid(), theme: theme, text: text, priorite: priorite, owner: owner, statut: statut,
+             messages: [], attachments: [], createdAt: now, statusHistory: [{statut: statut, timestamp: now}] };
+  }
+  return [
+    q("deal","Calendrier prévisionnel de l'opération : dates cibles de signing et de closing, avec quelles conditions suspensives ?","Haute","Directeur M&A","Ouverte"),
+    q("deal","Existe-t-il une lettre d'intention / accord d'exclusivité signé avec le cédant ? Durée et date d'échéance ?","Haute","Directeur M&A","Ouverte"),
+    q("deal","Qui pilote la négociation du SPA (Sale and Purchase Agreement) côté acquéreur et côté cédant/conseils ?","Moyenne","Directeur M&A","Ouverte"),
+    q("deal","Quelles conditions suspensives envisager (financement, autorisations, absence de changement significatif défavorable) ?","Haute","Directeur M&A","Ouverte"),
+    q("deal","Modalités de garantie de passif à négocier : durée, plafond, franchise, séquestre (escrow) ?","Haute","Directeur M&A","Ouverte"),
+    q("deal","Séquencement de la Due Diligence par thématique : dates limites, comité de pilotage prévu ?","Moyenne","Directeur M&A","En cours"),
+    q("deal","Plan de communication interne/externe autour de l'annonce (salariés, clients, fournisseurs) : qui, quand, quel message ?","Moyenne","Directeur Commercial Groupe","Ouverte"),
+
+    q("org","Quelle organisation cible pour Pruvot au sein du groupe (rattachement, gouvernance, reporting) ?","Haute","Directeur M&A","Ouverte"),
+    q("org","Le dirigeant actuel (M. Pruvot) reste-t-il aux commandes de l'opérationnel ? Sous quelle forme et pour quelle durée ?","Haute","Directeur M&A","Ouverte"),
+    q("org","Quel plan d'intégration RH / IT / Achats sur les 100 premiers jours post-closing ?","Haute","DRH Groupe","Ouverte"),
+    q("org","Comment seront pilotées et suivies dans le temps les synergies identifiées (achats, commercial, structure) ?","Haute","Directeur Financier Groupe","Ouverte"),
+    q("org","Faut-il un comité de pilotage dédié à l'intégration (COMEX Pruvot + Groupe) ? Quelle fréquence ?","Moyenne","Directeur M&A","Ouverte"),
+    q("org","Existe-t-il des doublons de fonctions à anticiper (comptabilité, RH, paie) entre Pruvot et le siège Groupe ?","Moyenne","DRH Groupe","Ouverte"),
+
+    q("rh","Confirmer le détail des engagements de retraite (42 K€) et la couverture IFC (21 K€ provisionnés) : méthode actuarielle utilisée ?","Haute","DRH Groupe","Ouverte"),
+    q("rh","Obtenir le détail individuel des 16 contrats de travail (ancienneté, rémunération, clauses spécifiques)","Haute","DRH Groupe","Ouverte"),
+    q("rh","Convention collective Bois et Scieries : accords d'entreprise, avantages conventionnels, écarts vs. grille groupe","Moyenne","DRH Groupe","Ouverte"),
+    q("rh","Le contrat du dirigeant prévoit-il un accompagnement transitoire post-cession ? Durée, conditions ?","Haute","Directeur M&A","En cours"),
+    q("rh","Historique des accidents du travail / maladies professionnelles sur 3 ans, et statut du DUERP","Moyenne","DRH Groupe","Ouverte"),
+    q("rh","Turn-over et pyramide des âges (5 salariés > 55 ans) : plan de succession sur les postes clés ?","Haute","DRH Groupe","Ouverte"),
+
+    q("bat","Copie du bail avec la SCI TCLN 43 : durée résiduelle, indexation, clause de sortie en cas de changement de contrôle","Haute","Directeur M&A","Ouverte"),
+    q("bat","État des lieux technique du site (27 000 m², 6 500 m² bâtis) : diagnostics amiante/plomb, conformité ICPE","Haute","Directeur Industriel","Ouverte"),
+    q("bat","Travaux de mise aux normes ou de gros entretien à prévoir à court terme (toiture, aspiration) ?","Moyenne","Directeur Industriel","Ouverte"),
+    q("bat","Confirmer l'absence de servitudes, hypothèques ou contentieux sur le foncier de la SCI","Moyenne","Directeur M&A","Ouverte"),
+
+    q("com","Contrats-cadres des 3 premiers clients (35% du CA 2025) : durée, clauses de révision de prix, exclusivité","Haute","Directeur Commercial Groupe","Ouverte"),
+    q("com","Risque de perte d'un client majeur lors du changement de contrôle (clause de changement de contrôle) ?","Haute","Directeur Commercial Groupe","Ouverte"),
+    q("com","Pipeline commercial en cours et devis en attente non reflétés dans le CA 2025","Moyenne","Directeur Commercial Groupe","Ouverte"),
+    q("com","Analyse de la baisse de CA 2024 (-18% vs 2023) : facteurs conjoncturels ou structurels ?","Haute","Directeur M&A","Répondue"),
+
+    q("fin","Nature précise de la dette financière 2025 (373 K€, en forte hausse) : objet, garanties, covenants, échéancier","Haute","Directeur Financier Groupe","Ouverte"),
+    q("fin","Cautions personnelles du dirigeant ou sûretés sur les actifs à lever au closing ?","Haute","Directeur Financier Groupe","Ouverte"),
+    q("fin","Détail des comptes courants d'associés (188 K€) : conditions de remboursement, taux, échéance","Moyenne","Directeur Financier Groupe","Ouverte"),
+    q("fin","Confirmer l'absence d'engagements hors bilan (garanties, litiges provisionnés, crédit-bail non capitalisé)","Haute","Directeur Financier Groupe","Ouverte"),
+
+    q("ach","Contrats/conditions avec les 2 principaux fournisseurs de bois (scieries, ~26% des achats 2025)","Haute","Acheteur Groupe","Ouverte"),
+    q("ach","Dépendance critique à un fournisseur unique de panneaux ou de plots agglo ?","Moyenne","Acheteur Groupe","Ouverte"),
+    q("ach","Potentiel réel de mutualisation avec le panel CAP'EMBAL/LEGAA (recoupement fournisseurs, volumes)","Haute","Acheteur Groupe","En cours"),
+    q("ach","Politique de couverture / gestion du risque prix bois-panneaux (achats à terme, indexation contractuelle) ?","Moyenne","Acheteur Groupe","Ouverte"),
+
+    q("mac","Âge et état du parc machines (Weeke, Holzma HPP 300, Altendorf, Reinhardt) et plan de maintenance","Haute","Directeur Industriel","Ouverte"),
+    q("mac","Plan de renouvellement/capex industriel à moyen terme non reflété dans le business plan ?","Haute","Directeur Industriel","Ouverte"),
+    q("mac","Certification NIMP 15 (contrôle annuel ministère de l'agriculture) : dernière date, conformité","Moyenne","Directeur Industriel","Ouverte"),
+    q("mac","Capacité de production disponible vs. taux d'utilisation actuel : marge pour absorber la croissance groupe ?","Moyenne","Directeur Industriel","Ouverte"),
+
+    q("jur","Litiges en cours (prud'homaux, commerciaux, fiscaux) non provisionnés dans les comptes ?","Haute","Directeur M&A","Ouverte"),
+    q("jur","Historique des contrôles fiscaux et URSSAF des 3 dernières années : redressements, réserves ?","Haute","Directeur Financier Groupe","Ouverte"),
+    q("jur","Régularité des statuts, PV d'AG, absence de clauses de préemption ou d'agrément sur les titres","Moyenne","Directeur M&A","Ouverte"),
+
+    q("si","Détail des polices d'assurance (multirisques, RC, flotte) : garanties, franchises, sinistralité 3 ans","Moyenne","Directeur Financier Groupe","Ouverte"),
+    q("si","Quel ERP / logiciel de production est utilisé ? Compatibilité avec les systèmes CAP'EMBAL/LEGAA ?","Moyenne","Acheteur Groupe","Ouverte"),
+    q("si","Niveau de maturité cybersécurité (sauvegardes, accès distants, RGPD) avant intégration au SI groupe","Basse","Acheteur Groupe","Ouverte")
+  ];
+}
+
+var STORAGE_KEY = "wood-box-dd-tracker-questions";
+var state = { questions: [], myName: "" };
+
+function loadData(cb){
+  if (!window.storage) { state.questions = seedQuestions(); cb(); return; }
+  window.storage.get(STORAGE_KEY, true).then(function(res){
+    if (res && res.value) {
+      try {
+        var parsed = JSON.parse(res.value);
+        parsed.forEach(function(q){ if (!q.statusHistory) q.statusHistory = [{statut:q.statut, timestamp:q.createdAt||new Date().toISOString()}]; });
+        state.questions = parsed;
+      } catch(e){ state.questions = seedQuestions(); }
+    } else {
+      state.questions = seedQuestions();
+      persist();
+    }
+    cb();
+  }).catch(function(){ state.questions = seedQuestions(); cb(); });
+}
+
+function persist(){
+  if (!window.storage) return;
+  try { window.storage.set(STORAGE_KEY, JSON.stringify(state.questions), true).catch(function(){}); } catch(e){}
+}
+
+function themeOf(id){ for (var i=0;i<THEMES.length;i++){ if (THEMES[i].id===id) return THEMES[i]; } return THEMES[0]; }
+function questionsFor(themeId){ return state.questions.filter(function(q){ return q.theme===themeId; }); }
+function findQ(id){ return state.questions.find(function(x){ return x.id===id; }); }
+function fmtDate(iso){ var d=new Date(iso); return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit"}) + " " + d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
+function fmtDay(iso){ var d=new Date(iso); return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function setStatut(q, statut){ q.statut = statut; q.statusHistory.push({statut: statut, timestamp: new Date().toISOString()}); }
+
+function chatIcon(count){
+  return '<span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+      '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>' +
+    '</svg>' + (count>0 ? '<span style="font-size:10.5px;font-weight:700;">'+count+'</span>' : '') +
+  '</span>';
+}
+
+function initGate(){
+  document.getElementById("ddq-lock").style.display = "flex";
+  document.getElementById("ddq-app").style.display = "none";
+  var submit = document.getElementById("ddq-pwd-submit");
+  var input = document.getElementById("ddq-pwd-input");
+  function tryUnlock(){
+    if (input.value === APP_PASSWORD) {
+      document.getElementById("ddq-lock").style.display = "none";
+      document.getElementById("ddq-app").style.display = "block";
+      loadData(render);
+    } else {
+      document.getElementById("ddq-pwd-error").style.display = "block";
+    }
+  }
+  submit.addEventListener("click", tryUnlock);
+  input.addEventListener("keydown", function(e){ if (e.key === "Enter") tryUnlock(); });
+}
+
+function render(){
+  renderStats();
+  renderTiles();
+  renderDashboard();
+}
+
+function renderStats(){
+  var total = state.questions.length;
+  var ouvertes = state.questions.filter(function(q){ return q.statut!=="Clôturée"; }).length;
+  var haute = state.questions.filter(function(q){ return q.priorite==="Haute" && q.statut!=="Clôturée"; }).length;
+  var cloturees = state.questions.filter(function(q){ return q.statut==="Clôturée"; }).length;
+  var chip = function(label, val, color, bg){
+    return '<div style="background:'+bg+';color:'+color+';border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;">'+
+           val+' <span style="font-weight:400;">'+label+'</span></div>';
+  };
+  document.getElementById("ddq-stats").innerHTML =
+    chip("questions au total", total, "#142850", "#EEF0F3") +
+    chip("ouvertes", ouvertes, "#2E5395", "#E6ECF7") +
+    chip("priorité haute non traitées", haute, "#A32D2D", "#FBEAE8") +
+    chip("clôturées", cloturees, "#1F7A4D", "#E3F5EA");
+}
+
+function renderTiles(){
+  var html = "";
+  THEMES.forEach(function(t){
+    var qs = questionsFor(t.id);
+    var open = qs.filter(function(q){ return q.statut!=="Clôturée"; }).length;
+    var haute = qs.filter(function(q){ return q.priorite==="Haute" && q.statut!=="Clôturée"; }).length;
+    html += '' +
+    '<div data-theme="'+t.id+'" class="ddq-tile" style="cursor:pointer;background:#FFFFFF;border:1px solid #E2E5EA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">'+t.code+'</div>' +
+        '<div style="font-size:13.5px;font-weight:600;color:#142850;line-height:1.25;">'+esc(t.label)+'</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<span style="font-size:11px;color:#5B6472;">'+qs.length+' question'+(qs.length>1?'s':'')+'</span>' +
+        (open ? '<span style="font-size:11px;color:#2E5395;">· '+open+' ouverte'+(open>1?'s':'')+'</span>' : '') +
+        (haute ? '<span style="font-size:11px;color:#A32D2D;font-weight:600;">· '+haute+' priorité haute</span>' : '') +
+      '</div>' +
+    '</div>';
+  });
+  document.getElementById("ddq-tiles").innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-tile"), function(el){
+    el.addEventListener("click", function(){ openThemeModal(el.getAttribute("data-theme")); });
+  });
+}
+
+function stackedBar(total_max, counts){
+  var total = STATUTS.reduce(function(s,k){ return s+(counts[k]||0); }, 0);
+  var widthPct = total_max>0 ? (total/total_max*100) : 0;
+  var segs = STATUTS.map(function(k){
+    var v = counts[k]||0;
+    if (!v) return "";
+    var pct = total>0 ? (v/total*100) : 0;
+    return '<div style="width:'+pct+'%;background:'+STATUT_COLOR[k]+';height:100%;" title="'+k+': '+v+'"></div>';
+  }).join("");
+  return '<div style="display:flex;height:14px;border-radius:4px;overflow:hidden;background:#F0F1F3;width:'+widthPct+'%;min-width:'+(total>0?'6px':'0')+';">'+segs+'</div>';
+}
+
+function renderDashboard(){
+  var byTheme = THEMES.map(function(t){
+    var qs = questionsFor(t.id);
+    var counts = {};
+    STATUTS.forEach(function(s){ counts[s] = qs.filter(function(q){ return q.statut===s; }).length; });
+    return { label: t.label, code: t.code, color: t.color, counts: counts, total: qs.length };
+  });
+  var maxTheme = Math.max.apply(null, byTheme.map(function(x){ return x.total; }).concat([1]));
+  var themeHtml = byTheme.map(function(x){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">' +
+      '<div style="width:96px;font-size:11px;color:#5B6472;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(x.label)+'">'+esc(x.code)+' · '+esc(x.label)+'</div>' +
+      '<div style="flex:1;">'+stackedBar(maxTheme, x.counts)+'</div>' +
+      '<div style="width:18px;font-size:11px;color:#9AA2AF;text-align:right;flex-shrink:0;">'+x.total+'</div>' +
+    '</div>';
+  }).join("");
+  document.getElementById("ddq-dash-theme").innerHTML = themeHtml;
+
+  var byPrio = PRIORITIES.map(function(p){
+    var qs = state.questions.filter(function(q){ return q.priorite===p; });
+    var counts = {};
+    STATUTS.forEach(function(s){ counts[s] = qs.filter(function(q){ return q.statut===s; }).length; });
+    return { label:p, counts: counts, total: qs.length };
+  });
+  var maxPrio = Math.max.apply(null, byPrio.map(function(x){ return x.total; }).concat([1]));
+  var prioHtml = byPrio.map(function(x){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">' +
+      '<div style="width:96px;font-size:11px;color:#5B6472;flex-shrink:0;">'+esc(x.label)+'</div>' +
+      '<div style="flex:1;">'+stackedBar(maxPrio, x.counts)+'</div>' +
+      '<div style="width:18px;font-size:11px;color:#9AA2AF;text-align:right;flex-shrink:0;">'+x.total+'</div>' +
+    '</div>';
+  }).join("");
+  document.getElementById("ddq-dash-prio").innerHTML = prioHtml;
+
+  renderEvolution();
+}
+
+function renderEvolution(){
+  var closures = [];
+  state.questions.forEach(function(q){
+    (q.statusHistory||[]).forEach(function(h){
+      if (h.statut === "Clôturée") closures.push(h.timestamp);
+    });
+  });
+  var el = document.getElementById("ddq-dash-evo");
+  if (!closures.length) {
+    el.innerHTML = '<div style="font-size:11.5px;color:#9AA2AF;">Pas encore de clôture enregistrée — la courbe se construira au fil du traitement des questions.</div>';
+    return;
+  }
+  closures.sort();
+  var byDay = {};
+  closures.forEach(function(ts){ var d = fmtDay(ts); byDay[d] = (byDay[d]||0)+1; });
+  var days = Object.keys(byDay);
+  var cum = 0, points = [];
+  days.forEach(function(d){ cum += byDay[d]; points.push({ day:d, cum:cum }); });
+
+  var w = 260, h = 60, pad = 4;
+  var maxCum = cum;
+  var stepX = points.length>1 ? (w-2*pad)/(points.length-1) : 0;
+  var coords = points.map(function(p,i){
+    var x = pad + i*stepX;
+    var y = h-pad - (maxCum>0 ? (p.cum/maxCum)*(h-2*pad) : 0);
+    return x.toFixed(1)+","+y.toFixed(1);
+  });
+  var lastLabel = points[points.length-1];
+  el.innerHTML =
+    '<svg width="100%" viewBox="0 0 '+w+' '+h+'" style="display:block;">' +
+      '<polyline points="'+coords.join(" ")+'" fill="none" stroke="#1F7A4D" stroke-width="2"></polyline>' +
+    '</svg>' +
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:#9AA2AF;margin-top:2px;">' +
+      '<span>'+esc(points[0].day)+'</span><span>'+esc(lastLabel.day)+' · '+lastLabel.cum+' clôturée'+(lastLabel.cum>1?'s':'')+' au total</span>' +
+    '</div>';
+}
+
+function closeModalById(id){ var el = document.getElementById(id); if (el) el.remove(); }
+
+function openThemeModal(themeId){
+  var t = themeOf(themeId);
+  var qs = questionsFor(themeId);
+
+  var dragHandleSvg = '<svg width="10" height="16" viewBox="0 0 10 16" style="cursor:grab;flex-shrink:0;">' +
+      '<circle cx="2.5" cy="2.5" r="1.3" fill="#C9CDD4"></circle><circle cx="7.5" cy="2.5" r="1.3" fill="#C9CDD4"></circle>' +
+      '<circle cx="2.5" cy="8" r="1.3" fill="#C9CDD4"></circle><circle cx="7.5" cy="8" r="1.3" fill="#C9CDD4"></circle>' +
+      '<circle cx="2.5" cy="13.5" r="1.3" fill="#C9CDD4"></circle><circle cx="7.5" cy="13.5" r="1.3" fill="#C9CDD4"></circle>' +
+    '</svg>';
+
+  var rows = qs.map(function(q){
+    var pStyle = PRIO_STYLE[q.priorite] || PRIO_STYLE["Basse"];
+    var sc = STATUT_COLOR[q.statut] || "#5B6472";
+    return '<div data-q="'+q.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">' +
+      '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner">'+dragHandleSvg+'</span>' +
+      '<span title="Priorité : '+q.priorite+'" style="width:8px;height:8px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;"></span>' +
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:#1A1F2B;" title="'+esc(q.text)+'">'+esc(q.text)+'</span>' +
+      '<span title="'+esc(q.owner||"Non assigné")+'" style="width:20px;height:20px;border-radius:50%;background:'+authorColor(q.owner)+';color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+esc(initials(q.owner))+'</span>' +
+      '<span style="font-size:10.5px;font-weight:600;color:'+sc+';white-space:nowrap;flex-shrink:0;">'+q.statut+'</span>' +
+      '<span style="color:#9AA2AF;flex-shrink:0;">'+chatIcon(q.messages.length)+'</span>' +
+    '</div>';
+  }).join("");
+
+  var html =
+    '<div id="ddq-overlay-theme" class="ddq-overlay">' +
+      '<div class="ddq-modal" style="max-width:640px;">' +
+        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:14px 14px 0 0;">' +
+          '<div style="font-size:15px;font-weight:600;color:'+t.color+';">'+esc(t.label)+'</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<button id="ddq-add-toggle" title="Ajouter une question" style="width:28px;height:28px;border-radius:50%;border:1px solid #E2E5EA;background:#fff;color:#142850;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;">+</button>' +
+            '<button id="ddq-theme-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;">Fermer</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:16px 20px;">' +
+          '<div id="ddq-add-form" style="display:none;border:1px solid #E2E5EA;border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
+            '<textarea id="ddq-new-text" rows="2" placeholder="Rédiger la question…" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;resize:vertical;margin-bottom:8px;"></textarea>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+              '<select id="ddq-new-prio" style="border:1px solid #E2E5EA;border-radius:8px;padding:7px 8px;">' +
+                PRIORITIES.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join("") +
+              '</select>' +
+              '<input id="ddq-new-owner" placeholder="Owner (responsable)" style="border:1px solid #E2E5EA;border-radius:8px;padding:7px 10px;flex:1;min-width:160px;" />' +
+              '<button id="ddq-new-cancel" style="background:#fff;color:#5B6472;border:1px solid #E2E5EA;border-radius:8px;padding:7px 14px;">Annuler</button>' +
+              '<button id="ddq-new-submit" style="background:#142850;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-weight:600;">Ajouter</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="ddq-qrow-list">' +
+          (rows || '<div style="font-size:13px;color:#5B6472;margin-bottom:10px;">Aucune question pour le moment.</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  document.getElementById("ddq-modals").appendChild(wrap.firstChild);
+
+  document.getElementById("ddq-overlay-theme").addEventListener("mousedown", function(e){
+    if (e.target.id === "ddq-overlay-theme") closeModalById("ddq-overlay-theme");
+  });
+  document.getElementById("ddq-theme-close").addEventListener("click", function(){ closeModalById("ddq-overlay-theme"); });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-qrow"), function(row){
+    row.addEventListener("click", function(e){
+      if (e.target.closest && e.target.closest(".ddq-drag-handle")) return;
+      openQuestionModal(row.getAttribute("data-q"));
+    });
+    wireRowDrag(row, themeId);
+  });
+
+  var addToggle = document.getElementById("ddq-add-toggle");
+  var addForm = document.getElementById("ddq-add-form");
+  addToggle.addEventListener("click", function(){
+    var showing = addForm.style.display === "block";
+    addForm.style.display = showing ? "none" : "block";
+    if (!showing) document.getElementById("ddq-new-text").focus();
+  });
+  document.getElementById("ddq-new-cancel").addEventListener("click", function(){
+    addForm.style.display = "none";
+    document.getElementById("ddq-new-text").value = "";
+    document.getElementById("ddq-new-owner").value = "";
+  });
+
+  document.getElementById("ddq-new-submit").addEventListener("click", function(){
+    var text = document.getElementById("ddq-new-text").value.trim();
+    if (!text) return;
+    var prio = document.getElementById("ddq-new-prio").value;
+    var owner = document.getElementById("ddq-new-owner").value.trim();
+    var now = new Date().toISOString();
+    state.questions.push({
+      id: uid(), theme: themeId, text: text, priorite: prio, owner: owner, statut: "Ouverte",
+      messages: [], attachments: [], createdAt: now, statusHistory: [{statut:"Ouverte", timestamp: now}]
+    });
+    persist();
+    render();
+    closeModalById("ddq-overlay-theme");
+    openThemeModal(themeId);
+  });
+}
+
+function reorderTheme(themeId, orderedIds){
+  var others = state.questions.filter(function(q){ return q.theme !== themeId; });
+  var themeQs = orderedIds.map(function(id){ return findQ(id); }).filter(Boolean);
+  state.questions = others.concat(themeQs);
+  persist();
+}
+
+function wireRowDrag(rowEl, themeId){
+  var handle = rowEl.querySelector(".ddq-drag-handle");
+  handle.addEventListener("dragstart", function(e){
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", rowEl.getAttribute("data-q"));
+    rowEl.style.opacity = "0.4";
+  });
+  handle.addEventListener("dragend", function(){ rowEl.style.opacity = "1"; });
+  rowEl.addEventListener("dragover", function(e){
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    rowEl.style.boxShadow = "inset 0 2px 0 #2E5395";
+  });
+  rowEl.addEventListener("dragleave", function(){ rowEl.style.boxShadow = ""; });
+  rowEl.addEventListener("drop", function(e){
+    e.preventDefault();
+    rowEl.style.boxShadow = "";
+    var draggedId = e.dataTransfer.getData("text/plain");
+    var targetId = rowEl.getAttribute("data-q");
+    if (!draggedId || draggedId === targetId) return;
+    var ids = questionsFor(themeId).map(function(q){ return q.id; });
+    var fromIdx = ids.indexOf(draggedId);
+    if (fromIdx === -1) return;
+    ids.splice(fromIdx, 1);
+    var toIdx = ids.indexOf(targetId);
+    var rect = rowEl.getBoundingClientRect();
+    var after = (e.clientY - rect.top) > rect.height/2;
+    ids.splice(after ? toIdx+1 : toIdx, 0, draggedId);
+    reorderTheme(themeId, ids);
+    closeModalById("ddq-overlay-theme");
+    openThemeModal(themeId);
+  });
+}
+
+function openQuestionModal(qid){
+  var q = findQ(qid);
+  if (!q) return;
+  var t = themeOf(q.theme);
+
+  var attRows = q.attachments.map(function(a){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;background:#FAFBFC;border:1px solid #E2E5EA;border-radius:8px;padding:6px 10px;margin-bottom:6px;">' +
+      '<div style="font-size:12px;color:#1A1F2B;"><span style="font-weight:600;">'+esc(a.name)+'</span>' + (a.note ? ' — <span style="color:#5B6472;">'+esc(a.note)+'</span>' : '') + '</div>' +
+      '<button data-att="'+a.id+'" class="ddq-att-remove" style="border:none;background:none;color:#9AA2AF;font-size:12px;">Retirer</button>' +
+    '</div>';
+  }).join("");
+
+  var html =
+    '<div id="ddq-overlay-question" class="ddq-overlay" style="z-index:1001;">' +
+      '<div class="ddq-modal" style="max-width:560px;">' +
+        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-radius:14px 14px 0 0;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">'+esc(t.label)+'</div>' +
+            '<textarea id="ddq-f-text" rows="2" style="font-size:14px;color:#1A1F2B;line-height:1.4;width:100%;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;resize:vertical;background:transparent;font-family:inherit;">'+esc(q.text)+'</textarea>' +
+          '</div>' +
+          '<button id="ddq-q-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;flex-shrink:0;">Fermer</button>' +
+        '</div>' +
+        '<div style="padding:16px 20px;">' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">' +
+            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;">Priorité' +
+              '<select id="ddq-f-prio" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;">' +
+              PRIORITIES.map(function(p){ return '<option value="'+p+'" '+(p===q.priorite?"selected":"")+'>'+p+'</option>'; }).join("") +
+              '</select></label>' +
+            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;">Statut' +
+              '<select id="ddq-f-statut" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;">' +
+              STATUTS.map(function(s){ return '<option value="'+s+'" '+(s===q.statut?"selected":"")+'>'+s+'</option>'; }).join("") +
+              '</select></label>' +
+            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;flex:1;min-width:160px;">Owner' +
+              '<input id="ddq-f-owner" value="'+esc(q.owner)+'" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;" /></label>' +
+          '</div>' +
+
+          '<button id="ddq-open-chat" style="display:flex;align-items:center;gap:8px;background:#F0F3F8;border:1px solid #E2E5EA;border-radius:8px;padding:9px 14px;font-weight:600;color:#142850;margin-bottom:18px;width:100%;justify-content:center;">' +
+            chatIcon(0) + '<span>Ouvrir la discussion' + (q.messages.length ? ' ('+q.messages.length+')' : '') + '</span>' +
+          '</button>' +
+
+          '<div style="font-size:11.5px;font-weight:600;color:#142850;margin-bottom:6px;">Pièces jointes</div>' +
+          '<div id="ddq-att-list">' + (attRows || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucune pièce jointe.</div>') + '</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">' +
+            '<input id="ddq-att-name" placeholder="Nom du fichier ou lien data room" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:180px;" />' +
+            '<input id="ddq-att-note" placeholder="Note (optionnel)" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:120px;" />' +
+            '<button id="ddq-att-add" style="background:#fff;color:#142850;border:1px solid #142850;border-radius:6px;padding:6px 14px;font-weight:600;">Associer</button>' +
+          '</div>' +
+
+          '<button id="ddq-delete-btn" style="display:flex;align-items:center;gap:6px;justify-content:center;width:100%;background:#fff;color:#A32D2D;border:1px solid #F0C9C9;border-radius:8px;padding:8px 14px;font-size:12px;">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
+            'Supprimer cette question' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  document.getElementById("ddq-modals").appendChild(wrap.firstChild);
+
+  document.getElementById("ddq-overlay-question").addEventListener("mousedown", function(e){
+    if (e.target.id === "ddq-overlay-question") closeModalById("ddq-overlay-question");
+  });
+  document.getElementById("ddq-q-close").addEventListener("click", function(){ closeModalById("ddq-overlay-question"); });
+
+  var textEl = document.getElementById("ddq-f-text");
+  textEl.addEventListener("focus", function(){ textEl.style.border = "1px solid #E2E5EA"; });
+  textEl.addEventListener("blur", function(){
+    textEl.style.border = "1px solid transparent";
+    var v = textEl.value.trim();
+    if (v && v !== q.text) { q.text = v; persist(); render(); }
+    else if (!v) { textEl.value = q.text; }
+  });
+
+  document.getElementById("ddq-f-prio").addEventListener("change", function(e){ q.priorite = e.target.value; persist(); render(); });
+  document.getElementById("ddq-f-statut").addEventListener("change", function(e){ setStatut(q, e.target.value); persist(); render(); });
+  document.getElementById("ddq-f-owner").addEventListener("change", function(e){ q.owner = e.target.value; persist(); render(); });
+
+  document.getElementById("ddq-open-chat").addEventListener("click", function(){ openChatModal(qid); });
+
+  document.getElementById("ddq-delete-btn").addEventListener("click", function(){
+    if (confirm("Supprimer définitivement cette question ? Cette action est irréversible.")) {
+      state.questions = state.questions.filter(function(x){ return x.id !== qid; });
+      persist();
+      closeModalById("ddq-overlay-question");
+      render();
+    }
+  });
+
+  document.getElementById("ddq-att-add").addEventListener("click", function(){
+    var name = document.getElementById("ddq-att-name").value.trim();
+    if (!name) return;
+    var note = document.getElementById("ddq-att-note").value.trim();
+    q.attachments.push({ id: uid(), name: name, note: note, timestamp: new Date().toISOString() });
+    persist();
+    closeModalById("ddq-overlay-question");
+    openQuestionModal(qid);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-att-remove"), function(btn){
+    btn.addEventListener("click", function(){
+      var attId = btn.getAttribute("data-att");
+      q.attachments = q.attachments.filter(function(a){ return a.id!==attId; });
+      persist();
+      closeModalById("ddq-overlay-question");
+      openQuestionModal(qid);
+    });
+  });
+}
+
+function openChatModal(qid){
+  var q = findQ(qid);
+  if (!q) return;
+
+  var msgs = q.messages.map(function(m){
+    var col = authorColor(m.author);
+    return '<div style="margin-bottom:12px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">' +
+        '<div style="width:22px;height:22px;border-radius:50%;background:'+col+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">'+esc((m.author||"?").slice(0,2).toUpperCase())+'</div>' +
+        '<span style="font-size:12px;font-weight:600;color:'+col+';">'+esc(m.author||"Anonyme")+'</span>' +
+        '<span style="font-size:10.5px;color:#9AA2AF;">'+fmtDate(m.timestamp)+'</span>' +
+      '</div>' +
+      '<div style="background:#F0F3F8;border-radius:0 10px 10px 10px;padding:8px 12px;margin-left:30px;font-size:13px;color:#1A1F2B;line-height:1.45;white-space:pre-wrap;">'+esc(m.text)+'</div>' +
+    '</div>';
+  }).join("");
+
+  var html =
+    '<div id="ddq-overlay-chat" class="ddq-overlay" style="z-index:1002;">' +
+      '<div class="ddq-modal" style="max-width:480px;display:flex;flex-direction:column;">' +
+        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-radius:14px 14px 0 0;">' +
+          '<div style="font-size:13px;font-weight:600;color:#142850;">Discussion</div>' +
+          '<button id="ddq-chat-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;">Fermer</button>' +
+        '</div>' +
+        '<div style="padding:16px 18px;max-height:340px;overflow-y:auto;" id="ddq-chat-list">' +
+          (msgs || '<div style="font-size:12px;color:#9AA2AF;">Aucun message pour le moment.</div>') +
+        '</div>' +
+        '<div style="border-top:1px solid #E2E5EA;padding:12px 18px;">' +
+          '<input id="ddq-chat-author" placeholder="Votre nom" value="'+esc(state.myName)+'" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;width:100%;margin-bottom:8px;" />' +
+          '<div style="display:flex;gap:8px;">' +
+            '<input id="ddq-chat-text" placeholder="Écrire un message…" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;flex:1;" />' +
+            '<button id="ddq-chat-send" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-weight:600;">Envoyer</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  document.getElementById("ddq-modals").appendChild(wrap.firstChild);
+
+  var list = document.getElementById("ddq-chat-list");
+  list.scrollTop = list.scrollHeight;
+
+  document.getElementById("ddq-overlay-chat").addEventListener("mousedown", function(e){
+    if (e.target.id === "ddq-overlay-chat") closeModalById("ddq-overlay-chat");
+  });
+  document.getElementById("ddq-chat-close").addEventListener("click", function(){ closeModalById("ddq-overlay-chat"); });
+
+  function send(){
+    var authorEl = document.getElementById("ddq-chat-author");
+    var textEl = document.getElementById("ddq-chat-text");
+    var text = textEl.value.trim();
+    if (!text) return;
+    var author = authorEl.value.trim() || "Anonyme";
+    state.myName = author;
+    q.messages.push({ id: uid(), author: author, text: text, timestamp: new Date().toISOString() });
+    persist();
+    closeModalById("ddq-overlay-chat");
+    openChatModal(qid);
+    render();
+  }
+  document.getElementById("ddq-chat-send").addEventListener("click", send);
+  document.getElementById("ddq-chat-text").addEventListener("keydown", function(e){ if (e.key === "Enter") send(); });
+}
+
+function messagesText(q){
+  return (q.messages||[]).map(function(m){ return "["+fmtDate(m.timestamp)+"] "+m.author+" : "+m.text; }).join(" | ");
+}
+function attachmentsText(q){
+  return (q.attachments||[]).map(function(a){ return a.name + (a.note ? " ("+a.note+")" : ""); }).join(", ");
+}
+function buildRows(withComments){
+  return state.questions.map(function(q){
+    var t = themeOf(q.theme);
+    var row = {
+      "Thème": t.label,
+      "Question": q.text,
+      "Priorité": q.priorite,
+      "Owner": q.owner || "",
+      "Statut": q.statut
+    };
+    if (withComments) {
+      row["Échanges"] = messagesText(q);
+      row["Pièces jointes"] = attachmentsText(q);
+    }
+    return row;
+  });
+}
+function downloadBlob(content, filename, mime){
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+function toCSV(rows){
+  if (!rows.length) return "";
+  var headers = Object.keys(rows[0]);
+  var lines = [headers.join(";")];
+  rows.forEach(function(r){
+    lines.push(headers.map(function(h){
+      var v = String(r[h]==null?"":r[h]).replace(/"/g,'""');
+      return '"'+v+'"';
+    }).join(";"));
+  });
+  return "\uFEFF" + lines.join("\r\n");
+}
+function exportExcel(withComments){
+  var rows = buildRows(withComments);
+  var filename = "DD_WoodBox_Questions" + (withComments ? "_avec_echanges" : "") + ".xlsx";
+  if (typeof XLSX !== "undefined") {
+    var ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = withComments
+      ? [{wch:22},{wch:60},{wch:10},{wch:22},{wch:12},{wch:50},{wch:30}]
+      : [{wch:22},{wch:60},{wch:10},{wch:22},{wch:12}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Due Diligence");
+    XLSX.writeFile(wb, filename);
+  } else {
+    downloadBlob(toCSV(rows), filename.replace(".xlsx",".csv"), "text/csv;charset=utf-8;");
+  }
+}
+function exportPDF(withComments){
+  var rows = buildRows(withComments);
+  var filename = "DD_WoodBox_Questions" + (withComments ? "_avec_echanges" : "") + ".pdf";
+  if (window.jspdf && window.jspdf.jsPDF) {
+    var doc = new window.jspdf.jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    doc.setFontSize(13);
+    doc.text("Due diligence — Projet Wood Box", 30, 30);
+    doc.setFontSize(9);
+    doc.text(new Date().toLocaleDateString("fr-FR"), 30, 44);
+    var head = withComments
+      ? [["Thème","Question","Priorité","Owner","Statut","Échanges","Pièces jointes"]]
+      : [["Thème","Question","Priorité","Owner","Statut"]];
+    var body = rows.map(function(r){
+      return withComments
+        ? [r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"], r["Échanges"], r["Pièces jointes"]]
+        : [r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"]];
+    });
+    doc.autoTable({
+      head: head, body: body, startY: 56, styles: { fontSize: 7.5, cellPadding: 4, overflow: "linebreak" },
+      headStyles: { fillColor: [20,40,80] },
+      columnStyles: withComments ? { 1: { cellWidth: 170 }, 5: { cellWidth: 160 } } : { 1: { cellWidth: 260 } }
+    });
+    doc.save(filename);
+  } else {
+    var w = window.open("", "_blank");
+    if (!w) { alert("Le navigateur a bloqué la fenêtre d'impression. Autorisez les pop-ups pour exporter en PDF."); return; }
+    var headers = Object.keys(rows[0]||{});
+    var html = "<html><head><meta charset='utf-8'><title>DD Wood Box</title>" +
+      "<style>body{font-family:Arial,sans-serif;font-size:11px;} table{border-collapse:collapse;width:100%;} " +
+      "th,td{border:1px solid #ccc;padding:6px;text-align:left;vertical-align:top;} th{background:#142850;color:#fff;}</style></head><body>" +
+      "<h3>Due diligence — Projet Wood Box</h3><table><tr>" + headers.map(function(h){return "<th>"+h+"</th>";}).join("") + "</tr>" +
+      rows.map(function(r){ return "<tr>" + headers.map(function(h){ return "<td>"+String(r[h]==null?"":r[h])+"</td>"; }).join("") + "</tr>"; }).join("") +
+      "</table></body></html>";
+    w.document.write(html); w.document.close();
+    setTimeout(function(){ w.print(); }, 300);
+  }
+}
+
+function wireExportButtons(){
+  var btn = document.getElementById("ddq-download-btn");
+  var menu = document.getElementById("ddq-download-menu");
+  btn.addEventListener("click", function(e){
+    e.stopPropagation();
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  });
+  document.addEventListener("click", function(e){
+    if (menu.style.display === "block" && !menu.contains(e.target) && e.target !== btn) {
+      menu.style.display = "none";
+    }
+  });
+  function closeMenu(){ menu.style.display = "none"; }
+  document.getElementById("ddq-exp-xlsx-simple").addEventListener("click", function(){ exportExcel(false); closeMenu(); });
+  document.getElementById("ddq-exp-xlsx-full").addEventListener("click", function(){ exportExcel(true); closeMenu(); });
+  document.getElementById("ddq-exp-pdf-simple").addEventListener("click", function(){ exportPDF(false); closeMenu(); });
+  document.getElementById("ddq-exp-pdf-full").addEventListener("click", function(){ exportPDF(true); closeMenu(); });
+}
+
+wireExportButtons();
+initGate();
+
+})();
+</script>
+</body>
+</html>
