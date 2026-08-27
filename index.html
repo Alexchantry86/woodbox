@@ -73,6 +73,13 @@
           <div style="font-size:15px;font-weight:600;color:#142850;margin-bottom:5px;">Exploration</div>
           <div style="font-size:12px;color:#5B6472;line-height:1.4;">Repérage et qualification de cibles par secteur</div>
         </div>
+        <div id="ddq-home-docspace" class="ddq-home-card" style="cursor:pointer;background:#fff;border:1px solid #E2E5EA;border-radius:14px;padding:30px 38px;width:270px;text-align:left;transition:border-color .15s;">
+          <div style="width:38px;height:38px;border-radius:10px;background:#EFE9F7;color:#6B4A9E;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="15" y2="17"></line></svg>
+          </div>
+          <div style="font-size:15px;font-weight:600;color:#142850;margin-bottom:5px;">Suivi &amp; Espace documentaire</div>
+          <div style="font-size:12px;color:#5B6472;line-height:1.4;">Liens et documents, classés par catégorie ou par projet</div>
+        </div>
       </div>
     </div>
 
@@ -127,6 +134,40 @@
   <div id="ddq-view-explo-company" style="display:none;max-width:760px;margin:0 auto;">
     <div class="ddq-crumb" data-crumb-sectors style="font-size:12px;color:#5B6472;cursor:pointer;margin-bottom:10px;">← Exploration</div>
     <div id="ddq-explo-company-body"></div>
+  </div>
+
+  <div id="ddq-view-docspace" style="display:none;max-width:900px;margin:0 auto;">
+    <div class="ddq-crumb" data-crumb-home style="font-size:12px;color:#5B6472;cursor:pointer;margin-bottom:10px;">← Accueil</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div>
+        <div style="font-size:19px;font-weight:600;color:#142850;">Suivi &amp; Espace documentaire</div>
+        <div style="font-size:12.5px;color:#5B6472;margin-top:2px;">Liens et documents partagés, classés par catégorie ou reliés à un projet.</div>
+      </div>
+      <button id="ddq-doc-add-toggle" style="background:#142850;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:600;flex-shrink:0;">+ Ajouter</button>
+    </div>
+
+    <div id="ddq-doc-add-form" style="display:none;background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="ddq-doc-title" placeholder="Titre" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;" />
+        <input id="ddq-doc-url" placeholder="Lien (URL, optionnel)" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <select id="ddq-doc-category" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;"></select>
+        <select id="ddq-doc-project" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;"></select>
+      </div>
+      <button id="ddq-doc-newcat" type="button" style="border:none;background:none;color:#2E5395;font-size:11.5px;text-decoration:underline;margin-bottom:8px;">+ Nouvelle catégorie</button>
+      <textarea id="ddq-doc-note" rows="2" placeholder="Note (optionnel)" style="width:100%;border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;resize:vertical;font-size:12.5px;margin-bottom:10px;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button id="ddq-doc-submit" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-weight:600;font-size:12.5px;">Enregistrer</button>
+        <button id="ddq-doc-cancel" type="button" style="background:#fff;border:1px solid #E2E5EA;color:#5B6472;border-radius:6px;padding:7px 16px;font-size:12.5px;">Annuler</button>
+      </div>
+    </div>
+
+    <input id="ddq-doc-search" placeholder="Rechercher un titre, une note, un lien…" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:10px;" />
+    <div id="ddq-doc-cat-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+    <select id="ddq-doc-project-filter" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 10px;font-size:12px;margin-bottom:14px;"></select>
+
+    <div id="ddq-doc-list"></div>
   </div>
 
   <div id="ddq-app" style="display:none;max-width:1160px;margin:0 auto;">
@@ -405,7 +446,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.7.2-firebase";
+var APP_VERSION = "2.8.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none" };
@@ -426,6 +467,8 @@ var EXPLO_DOC_PATH = { collection: "explo", doc: "shared" };
 var EXPLO_STORAGE_KEY = "wood-box-explo-data";
 var GENERIC_DEALS_DOC_PATH = { collection: "deals", doc: "shared" };
 var USERS_DOC_PATH = { collection: "users", doc: "shared" };
+var DOCSPACE_DOC_PATH = { collection: "docspace", doc: "shared" };
+var DOCSPACE_STORAGE_KEY = "wood-box-docspace";
 var USERS_STORAGE_KEY = "wood-box-users";
 var CURRENT_USER_KEY = "wood-box-current-user-id";
 var GENERIC_DEALS_STORAGE_KEY = "wood-box-generic-deals";
@@ -435,6 +478,7 @@ var fbDocRef = null;
 var fbExploDocRef = null;
 var fbGenericDealsDocRef = null;
 var fbUsersDocRef = null;
+var fbDocspaceDocRef = null;
 var fbReady = false;
 var fbInitError = null;
 
@@ -465,6 +509,7 @@ try {
     fbExploDocRef = fbDb.collection(EXPLO_DOC_PATH.collection).doc(EXPLO_DOC_PATH.doc);
     fbGenericDealsDocRef = fbDb.collection(GENERIC_DEALS_DOC_PATH.collection).doc(GENERIC_DEALS_DOC_PATH.doc);
     fbUsersDocRef = fbDb.collection(USERS_DOC_PATH.collection).doc(USERS_DOC_PATH.doc);
+    fbDocspaceDocRef = fbDb.collection(DOCSPACE_DOC_PATH.collection).doc(DOCSPACE_DOC_PATH.doc);
     fbReady = true;
   }
 } catch(e) {
@@ -813,6 +858,64 @@ function loadCurrentUserFromStorage(){
   try { id = localStorage.getItem(CURRENT_USER_KEY); } catch(e){}
   if (!id) return null;
   return findUserById(id);
+}
+
+// =====================================================================================
+// SUIVI & ESPACE DOCUMENTAIRE — liens/documents partagés, classables par catégorie et/ou
+// reliés à un projet (Pruvot, un deal générique, ou une entreprise en Exploration).
+// =====================================================================================
+var DEFAULT_DOC_CATEGORIES = ["Suivi Meetings", "Général"];
+var docspace = { items: [], categories: DEFAULT_DOC_CATEGORIES.slice() };
+
+function applyDocspaceRemoteData(data){
+  docspace.items = (data && data.items) || [];
+  docspace.categories = (data && data.categories && data.categories.length) ? data.categories : DEFAULT_DOC_CATEGORIES.slice();
+}
+function persistDocspace(){
+  if (fbReady) {
+    return fbDocspaceDocRef.set({ items: docspace.items, categories: docspace.categories, updatedAt: new Date().toISOString() }, { merge: true })
+      .then(function(){ return true; })
+      .catch(function(err){ showStorageError("Échec d'écriture Firestore (documents) : " + err.message + " (code : " + err.code + ")"); return false; });
+  }
+  return storageSet(DOCSPACE_STORAGE_KEY, JSON.stringify({ items: docspace.items, categories: docspace.categories }))
+    .then(function(){ return true; }).catch(function(){ return false; });
+}
+function loadDocspaceDataFallback(cb){
+  storageGet(DOCSPACE_STORAGE_KEY).then(function(res){
+    if (res && res.value) { try { applyDocspaceRemoteData(JSON.parse(res.value)); } catch(e){ docspace = { items: [], categories: DEFAULT_DOC_CATEGORIES.slice() }; } }
+    else { docspace = { items: [], categories: DEFAULT_DOC_CATEGORIES.slice() }; }
+    cb();
+  });
+}
+function loadDocspaceData(cb){
+  if (!fbReady) { loadDocspaceDataFallback(cb); return; }
+  fbDocspaceDocRef.get().then(function(snap){
+    if (snap.exists) { applyDocspaceRemoteData(snap.data()); }
+    else { docspace = { items: [], categories: DEFAULT_DOC_CATEGORIES.slice() }; }
+    cb();
+    fbDocspaceDocRef.onSnapshot(function(snap2){
+      if (snap2.exists && !snap2.metadata.hasPendingWrites) {
+        applyDocspaceRemoteData(snap2.data());
+        if (currentView === "docspace") renderDocspace();
+      }
+    }, function(err){ showStorageError("Connexion temps réel perdue (documents) : " + err.message); });
+  }).catch(function(err){
+    showStorageError("Firestore inaccessible (documents) : " + err.message + " — repli sur stockage local");
+    loadDocspaceDataFallback(cb);
+  });
+}
+
+function resolveProjectLabel(type, id){
+  if (type === "deal") {
+    if (id === "pruvot") return "Pruvot — Emballages bois";
+    var d = genericDeals.deals.filter(function(x){ return x.id===id; })[0];
+    return d ? d.name : null;
+  }
+  if (type === "company") {
+    var found = findExploCompany(id);
+    return found ? found.company.name : null;
+  }
+  return null;
 }
 
 function updateDealHeader(){
@@ -1307,6 +1410,9 @@ function initGate(){
         currentUser = loadCurrentUserFromStorage();
         showView(currentUser ? "home" : "profile");
       });
+      loadDocspaceData(function(){
+        if (currentView === "docspace") renderDocspace();
+      });
     } else {
       document.getElementById("ddq-pwd-error").style.display = "block";
     }
@@ -1332,6 +1438,7 @@ function showView(name){
     "explo-sectors": "ddq-view-explo-sectors",
     "explo-companies": "ddq-view-explo-companies",
     "explo-company": "ddq-view-explo-company",
+    "docspace": "ddq-view-docspace",
     "pruvot": "ddq-app"
   };
   Object.keys(map).forEach(function(v){
@@ -1345,12 +1452,14 @@ function showView(name){
   if (name === "explo-sectors") renderExploSectors();
   if (name === "explo-companies") renderExploCompanies();
   if (name === "explo-company") renderExploCompany();
+  if (name === "docspace") renderDocspace();
   if (name === "pruvot") { render(); }
 }
 
 function wirePlatformNav(){
   document.getElementById("ddq-home-deals").addEventListener("click", function(){ showView("deals"); });
   document.getElementById("ddq-home-explo").addEventListener("click", function(){ showView("explo-sectors"); });
+  document.getElementById("ddq-home-docspace").addEventListener("click", function(){ showView("docspace"); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-crumb-home]"), function(el){
     el.addEventListener("click", function(){ showView("home"); });
   });
@@ -1664,6 +1773,219 @@ function renderHomeNotifications(){
 }
 
 function renderHome(){ renderCurrentUserBar(); renderHomeActivity(); renderHomeNotifications(); }
+
+var docSearchQuery = "";
+var docCategoryFilter = "all";
+var docProjectFilter = "all"; // "all" | "none" | "type:id"
+var editingDocId = null;
+
+function buildProjectOptionsHtml(selectedValue){
+  var html = '<option value="">— Aucun projet lié —</option>';
+  html += '<optgroup label="Deals en cours">';
+  html += '<option value="deal:pruvot"'+(selectedValue==="deal:pruvot"?" selected":"")+'>Pruvot — Emballages bois</option>';
+  genericDeals.deals.forEach(function(d){
+    var v = "deal:"+d.id;
+    html += '<option value="'+esc(v)+'"'+(selectedValue===v?" selected":"")+'>'+esc(d.name)+'</option>';
+  });
+  html += '</optgroup>';
+  explo.sectors.forEach(function(s){
+    if (!s.companies.length) return;
+    html += '<optgroup label="'+esc(s.name)+'">';
+    s.companies.forEach(function(c){
+      var v = "company:"+c.id;
+      html += '<option value="'+esc(v)+'"'+(selectedValue===v?" selected":"")+'>'+esc(c.name)+'</option>';
+    });
+    html += '</optgroup>';
+  });
+  return html;
+}
+function buildProjectFilterOptionsHtml(){
+  var html = '<option value="all">Tous les projets</option><option value="none">Non liés</option>';
+  html += '<optgroup label="Deals en cours">';
+  html += '<option value="deal:pruvot">Pruvot — Emballages bois</option>';
+  genericDeals.deals.forEach(function(d){ html += '<option value="'+esc("deal:"+d.id)+'">'+esc(d.name)+'</option>'; });
+  html += '</optgroup>';
+  explo.sectors.forEach(function(s){
+    if (!s.companies.length) return;
+    html += '<optgroup label="'+esc(s.name)+'">';
+    s.companies.forEach(function(c){ html += '<option value="'+esc("company:"+c.id)+'">'+esc(c.name)+'</option>'; });
+    html += '</optgroup>';
+  });
+  return html;
+}
+function buildCategoryOptionsHtml(selected){
+  return docspace.categories.map(function(cat){
+    return '<option value="'+esc(cat)+'"'+(cat===selected?" selected":"")+'>'+esc(cat)+'</option>';
+  }).join("");
+}
+function docCatPillStyle(active){
+  return active
+    ? "border:1px solid #142850;background:#142850;color:#fff;border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;"
+    : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;";
+}
+
+function openDocEditForm(docId){
+  var item = docspace.items.filter(function(i){ return i.id===docId; })[0];
+  if (!item) return;
+  editingDocId = docId;
+  document.getElementById("ddq-doc-title").value = item.title || "";
+  document.getElementById("ddq-doc-url").value = item.url || "";
+  document.getElementById("ddq-doc-note").value = item.note || "";
+  document.getElementById("ddq-doc-category").innerHTML = buildCategoryOptionsHtml(item.category);
+  document.getElementById("ddq-doc-project").innerHTML = buildProjectOptionsHtml(item.linkedType ? item.linkedType+":"+item.linkedId : "");
+  document.getElementById("ddq-doc-submit").textContent = "Enregistrer les modifications";
+  document.getElementById("ddq-doc-add-form").style.display = "block";
+  window.scrollTo(0, 0);
+}
+function closeDocForm(){
+  editingDocId = null;
+  var form = document.getElementById("ddq-doc-add-form");
+  if (form) form.style.display = "none";
+  document.getElementById("ddq-doc-title").value = "";
+  document.getElementById("ddq-doc-url").value = "";
+  document.getElementById("ddq-doc-note").value = "";
+  document.getElementById("ddq-doc-submit").textContent = "Enregistrer";
+}
+
+function wireDocspaceForm(){
+  document.getElementById("ddq-doc-add-toggle").addEventListener("click", function(){
+    var form = document.getElementById("ddq-doc-add-form");
+    if (form.style.display === "block") { closeDocForm(); return; }
+    editingDocId = null;
+    document.getElementById("ddq-doc-category").innerHTML = buildCategoryOptionsHtml("");
+    document.getElementById("ddq-doc-project").innerHTML = buildProjectOptionsHtml("");
+    document.getElementById("ddq-doc-submit").textContent = "Enregistrer";
+    form.style.display = "block";
+  });
+  document.getElementById("ddq-doc-cancel").addEventListener("click", closeDocForm);
+  document.getElementById("ddq-doc-newcat").addEventListener("click", function(){
+    var name = prompt("Nom de la nouvelle catégorie :");
+    if (name === null) return;
+    name = name.trim();
+    if (!name) return;
+    if (docspace.categories.indexOf(name) === -1) { docspace.categories.push(name); persistDocspace(); }
+    document.getElementById("ddq-doc-category").innerHTML = buildCategoryOptionsHtml(name);
+  });
+  document.getElementById("ddq-doc-submit").addEventListener("click", function(){
+    var title = document.getElementById("ddq-doc-title").value.trim();
+    if (!title) { alert("Merci de renseigner un titre."); return; }
+    var url = document.getElementById("ddq-doc-url").value.trim();
+    var note = document.getElementById("ddq-doc-note").value.trim();
+    var category = document.getElementById("ddq-doc-category").value;
+    var projectValue = document.getElementById("ddq-doc-project").value;
+    var linkedType = null, linkedId = null;
+    if (projectValue) {
+      var parts = projectValue.split(":");
+      linkedType = parts[0]; linkedId = parts.slice(1).join(":");
+    }
+    if (editingDocId) {
+      var item = docspace.items.filter(function(i){ return i.id===editingDocId; })[0];
+      if (item) {
+        item.title = title; item.url = url || null; item.note = note; item.category = category;
+        item.linkedType = linkedType; item.linkedId = linkedId; item.editedAt = new Date().toISOString();
+      }
+    } else {
+      docspace.items.push({
+        id: uid(), title: title, url: url || null, note: note, category: category,
+        linkedType: linkedType, linkedId: linkedId,
+        author: currentUser ? currentUser.name : "Anonyme", authorId: currentUser ? currentUser.id : null,
+        createdAt: new Date().toISOString()
+      });
+    }
+    closeDocForm();
+    renderDocspace();
+    persistDocspace().then(function(ok){
+      if (!ok) alert("Le document n'a pas pu être enregistré en ligne — vérifiez la connexion et réessayez.");
+    });
+  });
+  document.getElementById("ddq-doc-search").addEventListener("input", function(e){
+    docSearchQuery = e.target.value;
+    renderDocspace();
+  });
+  document.getElementById("ddq-doc-project-filter").addEventListener("change", function(e){
+    docProjectFilter = e.target.value;
+    renderDocspace();
+  });
+}
+
+function renderDocspace(){
+  var catFiltersEl = document.getElementById("ddq-doc-cat-filters");
+  if (catFiltersEl) {
+    var pills = ['<button class="ddq-doc-catfilter" data-doc-cat="all" style="'+docCatPillStyle(docCategoryFilter==="all")+'">Toutes</button>'];
+    docspace.categories.forEach(function(cat){
+      pills.push('<button class="ddq-doc-catfilter" data-doc-cat="'+esc(cat)+'" style="'+docCatPillStyle(docCategoryFilter===cat)+'">'+esc(cat)+'</button>');
+    });
+    catFiltersEl.innerHTML = pills.join("");
+    Array.prototype.forEach.call(catFiltersEl.querySelectorAll(".ddq-doc-catfilter"), function(btn){
+      btn.addEventListener("click", function(){ docCategoryFilter = btn.getAttribute("data-doc-cat"); renderDocspace(); });
+    });
+  }
+
+  var projFilterEl = document.getElementById("ddq-doc-project-filter");
+  if (projFilterEl) {
+    projFilterEl.innerHTML = buildProjectFilterOptionsHtml();
+    projFilterEl.value = docProjectFilter;
+  }
+
+  var listEl = document.getElementById("ddq-doc-list");
+  if (!listEl) return;
+  var items = docspace.items.slice().sort(function(a,b){ return new Date(b.createdAt) - new Date(a.createdAt); });
+  if (docCategoryFilter !== "all") items = items.filter(function(i){ return i.category === docCategoryFilter; });
+  if (docProjectFilter === "none") items = items.filter(function(i){ return !i.linkedType; });
+  else if (docProjectFilter !== "all") {
+    var fp = docProjectFilter.split(":");
+    items = items.filter(function(i){ return i.linkedType === fp[0] && i.linkedId === fp.slice(1).join(":"); });
+  }
+  var q = docSearchQuery.trim().toLowerCase();
+  if (q) {
+    items = items.filter(function(i){
+      return (i.title||"").toLowerCase().indexOf(q) !== -1 || (i.note||"").toLowerCase().indexOf(q) !== -1 || (i.url||"").toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  if (!items.length) {
+    listEl.innerHTML = '<div style="font-size:12.5px;color:#9AA2AF;padding:24px 0;text-align:center;">' +
+      (q || docCategoryFilter!=="all" || docProjectFilter!=="all" ? "Aucun résultat pour ces filtres." : "Aucun document pour le moment — cliquez « + Ajouter ».") +
+    '</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(function(it){
+    var projLabel = it.linkedType ? resolveProjectLabel(it.linkedType, it.linkedId) : null;
+    var titleHtml = it.url
+      ? '<a href="'+esc(it.url)+'" target="_blank" rel="noopener" style="font-weight:600;color:#142850;text-decoration:underline;">'+esc(it.title)+'</a>'
+      : '<span style="font-weight:600;color:#142850;">'+esc(it.title)+'</span>';
+    return '<div style="background:#fff;border:1px solid #E2E5EA;border-radius:10px;padding:12px 16px;margin-bottom:8px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-size:13.5px;">'+titleHtml+'</div>' +
+          (it.note ? '<div style="font-size:12px;color:#5B6472;margin-top:3px;">'+esc(it.note)+'</div>' : '') +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;">' +
+            '<span style="font-size:10.5px;font-weight:600;color:#6B4A9E;background:#EFE9F7;border-radius:5px;padding:2px 7px;">'+esc(it.category)+'</span>' +
+            (projLabel ? '<span style="font-size:10.5px;font-weight:600;color:#2E5395;background:#E6ECF7;border-radius:5px;padding:2px 7px;">'+esc(projLabel)+'</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-shrink:0;">' +
+          '<button data-doc-edit="'+it.id+'" style="border:none;background:none;color:#5B6472;font-size:11px;">Modifier</button>' +
+          '<button data-doc-remove="'+it.id+'" style="border:none;background:none;color:#9AA2AF;font-size:11px;">Retirer</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:10.5px;color:#B7BCC4;margin-top:6px;">'+esc(it.author||"Anonyme")+' · '+fmtDate(it.createdAt)+(it.editedAt?' · modifié':'')+'</div>' +
+    '</div>';
+  }).join("");
+
+  Array.prototype.forEach.call(listEl.querySelectorAll("[data-doc-remove]"), function(btn){
+    btn.addEventListener("click", function(){
+      if (!confirm("Retirer définitivement ce document ?")) return;
+      docspace.items = docspace.items.filter(function(i){ return i.id !== btn.getAttribute("data-doc-remove"); });
+      renderDocspace();
+      persistDocspace();
+    });
+  });
+  Array.prototype.forEach.call(listEl.querySelectorAll("[data-doc-edit]"), function(btn){
+    btn.addEventListener("click", function(){ openDocEditForm(btn.getAttribute("data-doc-edit")); });
+  });
+}
 
 function renderDeals(){
   var grid = document.getElementById("ddq-deals-grid");
@@ -3113,6 +3435,7 @@ function renderExportFilterPanel(){
 wireExportButtons();
 wireTabs();
 wirePlatformNav();
+wireDocspaceForm();
 initGate();
 
 })();
