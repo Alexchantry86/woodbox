@@ -260,6 +260,20 @@
     </div>
 
     <div id="ddq-view-library" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button id="ddq-lib-add-toggle" style="background:#142850;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;">+ Ajouter un document</button>
+      </div>
+      <div id="ddq-lib-add-form" style="display:none;background:#fff;border:1px solid #E2E5EA;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input id="ddq-lib-doc-name" placeholder="Nom du document" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;" />
+          <input id="ddq-lib-doc-url" placeholder="Lien (Google Drive, etc.)" style="border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;" />
+        </div>
+        <input id="ddq-lib-doc-note" placeholder="Note (optionnel)" style="width:100%;border:1px solid #E2E5EA;border-radius:6px;padding:7px 10px;font-size:12.5px;margin-bottom:10px;" />
+        <div style="display:flex;gap:8px;">
+          <button id="ddq-lib-doc-submit" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-weight:600;font-size:12.5px;">Enregistrer</button>
+          <button id="ddq-lib-doc-cancel" type="button" style="background:#fff;border:1px solid #E2E5EA;color:#5B6472;border-radius:6px;padding:7px 16px;font-size:12.5px;">Annuler</button>
+        </div>
+      </div>
       <input id="ddq-lib-search" placeholder="Rechercher un fichier, une note, une question, un thème…" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:13px;" />
       <div id="ddq-lib-list"></div>
     </div>
@@ -446,10 +460,10 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.8.0-firebase";
+var APP_VERSION = "2.8.1-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
-var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none" };
+var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
 
 // =====================================================================================
 // FIREBASE — configuration du projet
@@ -538,6 +552,7 @@ function applyRemoteDataTo(target, data){
   target.themeNames = data.themeNames || {};
   target.themes = (data.themes && data.themes.length) ? data.themes : DEFAULT_THEMES.slice();
   target.driveFolder = data.driveFolder || null;
+  target.libraryDocs = data.libraryDocs || [];
 }
 function applyRemoteData(data){ applyRemoteDataTo(state, data); }
 
@@ -656,6 +671,7 @@ function ensureDealDefaults(deal){
   if (!deal.questions) deal.questions = [];
   if (!deal.themeNames) deal.themeNames = {};
   if (!deal.themes || !deal.themes.length) deal.themes = DEFAULT_THEMES.slice();
+  if (!deal.libraryDocs) deal.libraryDocs = [];
   deal.questions.forEach(function(q){
     if (!q.statusHistory) q.statusHistory = [{statut:q.statut, timestamp:q.createdAt||new Date().toISOString()}];
     if (!q.notes) q.notes = q.messages || [];
@@ -725,7 +741,7 @@ function createGenericDeal(name, sourceCompanyId){
   var id = "deal" + uid();
   var deal = {
     id: id, name: name, sourceCompanyId: sourceCompanyId || null, createdAt: new Date().toISOString(),
-    questions: [], themeNames: {}, themes: DEFAULT_THEMES.slice()
+    questions: [], themeNames: {}, themes: DEFAULT_THEMES.slice(), libraryDocs: []
   };
   genericDeals.deals.push(deal);
   persistGenericDealsList();
@@ -967,7 +983,7 @@ function activeStorageKey(){ return activeGenericDealId ? GENERIC_DEALS_STORAGE_
 function activeDealPayload(){
   return activeGenericDealId
     ? { deals: genericDeals.deals }
-    : { questions: state.questions, themeNames: state.themeNames, themes: state.themes, driveFolder: state.driveFolder || null };
+    : { questions: state.questions, themeNames: state.themeNames, themes: state.themes, driveFolder: state.driveFolder || null, libraryDocs: state.libraryDocs || [] };
 }
 function applyActiveRemoteData(data){
   if (activeGenericDealId) applyGenericDealsRemoteData(data);
@@ -2440,13 +2456,68 @@ function collectAllAttachments(){
   var items = [];
   state.questions.forEach(function(q){
     var t = themeOf(q.theme);
-    (q.attachments||[]).forEach(function(a){ items.push({ att:a, question:q, theme:t }); });
+    (q.attachments||[]).forEach(function(a){ items.push({ att:a, question:q, theme:t, isLibraryDoc:false }); });
   });
+  (state.libraryDocs||[]).forEach(function(a){ items.push({ att:a, question:null, theme:null, isLibraryDoc:true }); });
   items.sort(function(a,b){ return new Date(b.att.timestamp) - new Date(a.att.timestamp); });
   return items;
 }
 
 var libSearchQuery = "";
+var editingLibDocId = null;
+
+function closeLibDocForm(){
+  editingLibDocId = null;
+  var form = document.getElementById("ddq-lib-add-form");
+  if (form) form.style.display = "none";
+  document.getElementById("ddq-lib-doc-name").value = "";
+  document.getElementById("ddq-lib-doc-url").value = "";
+  document.getElementById("ddq-lib-doc-note").value = "";
+  document.getElementById("ddq-lib-doc-submit").textContent = "Enregistrer";
+}
+function openLibDocEditForm(docId){
+  var doc = (state.libraryDocs||[]).filter(function(d){ return d.id===docId; })[0];
+  if (!doc) return;
+  editingLibDocId = docId;
+  document.getElementById("ddq-lib-doc-name").value = doc.name || "";
+  document.getElementById("ddq-lib-doc-url").value = doc.url || "";
+  document.getElementById("ddq-lib-doc-note").value = doc.note || "";
+  document.getElementById("ddq-lib-doc-submit").textContent = "Enregistrer les modifications";
+  document.getElementById("ddq-lib-add-form").style.display = "block";
+}
+function wireLibraryForm(){
+  document.getElementById("ddq-lib-add-toggle").addEventListener("click", function(){
+    var form = document.getElementById("ddq-lib-add-form");
+    if (form.style.display === "block") { closeLibDocForm(); return; }
+    editingLibDocId = null;
+    document.getElementById("ddq-lib-doc-submit").textContent = "Enregistrer";
+    form.style.display = "block";
+  });
+  document.getElementById("ddq-lib-doc-cancel").addEventListener("click", closeLibDocForm);
+  document.getElementById("ddq-lib-doc-submit").addEventListener("click", function(){
+    var name = document.getElementById("ddq-lib-doc-name").value.trim();
+    if (!name) { alert("Merci de renseigner un nom."); return; }
+    var url = document.getElementById("ddq-lib-doc-url").value.trim();
+    var note = document.getElementById("ddq-lib-doc-note").value.trim();
+    state.libraryDocs = state.libraryDocs || [];
+    if (editingLibDocId) {
+      var doc = state.libraryDocs.filter(function(d){ return d.id===editingLibDocId; })[0];
+      if (doc) { doc.name = name; doc.url = url || null; doc.note = note; doc.editedAt = new Date().toISOString(); }
+    } else {
+      state.libraryDocs.push({
+        id: uid(), name: name, url: url || null, note: note,
+        author: currentUser ? currentUser.name : "Anonyme", authorId: currentUser ? currentUser.id : null,
+        timestamp: new Date().toISOString()
+      });
+    }
+    closeLibDocForm();
+    renderLibrary();
+    persist().then(function(ok){
+      if (!ok) alert("Le document n'a pas pu être enregistré en ligne — vérifiez la connexion et réessayez.");
+    });
+  });
+}
+
 function renderLibrary(){
   var el = document.getElementById("ddq-lib-list");
   if (!el) return;
@@ -2456,19 +2527,33 @@ function renderLibrary(){
     items = items.filter(function(it){
       return (it.att.name||"").toLowerCase().indexOf(q) !== -1 ||
              (it.att.note||"").toLowerCase().indexOf(q) !== -1 ||
-             (it.question.text||"").toLowerCase().indexOf(q) !== -1 ||
-             (it.theme.label||"").toLowerCase().indexOf(q) !== -1 ||
-             (it.question.owner||"").toLowerCase().indexOf(q) !== -1;
+             (it.question && (it.question.text||"").toLowerCase().indexOf(q) !== -1) ||
+             (it.theme && (it.theme.label||"").toLowerCase().indexOf(q) !== -1) ||
+             (it.question && (it.question.owner||"").toLowerCase().indexOf(q) !== -1);
     });
   }
   var html;
   if (!items.length) {
     html = '<div style="font-size:13px;color:#9AA2AF;padding:24px 0;text-align:center;">' +
-      (q ? "Aucun résultat pour cette recherche." : "Aucun fichier partagé pour le moment — associez un fichier depuis une question.") +
+      (q ? "Aucun résultat pour cette recherche." : "Aucun fichier partagé pour le moment — ajoutez-en un ci-dessus, ou associez-en un depuis une question.") +
     '</div>';
   } else {
     html = items.map(function(it){
-      var a = it.att, t = it.theme, qq = it.question;
+      var a = it.att;
+      if (it.isLibraryDoc) {
+        return '<div style="display:flex;align-items:center;gap:12px;border:1px solid #E2E5EA;border-radius:10px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap;">' +
+          '<div style="width:34px;height:34px;border-radius:8px;background:#EEF0F3;color:#5B6472;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;">DOC</div>' +
+          '<div style="flex:1;min-width:180px;">' +
+            '<div style="font-size:13px;font-weight:600;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a.name)+'</div>' +
+            '<div style="font-size:11px;color:#9AA2AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Ajouté directement'+(a.note?' · '+esc(a.note):'')+'</div>' +
+          '</div>' +
+          '<div style="font-size:10.5px;color:#B7BCC4;white-space:nowrap;flex-shrink:0;">'+fmtDate(a.timestamp)+'</div>' +
+          (a.url ? '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:600;color:#142850;border:1px solid #142850;border-radius:6px;padding:5px 10px;flex-shrink:0;text-decoration:none;">Ouvrir</a>' : '') +
+          '<button data-lib-edit="'+a.id+'" style="font-size:11.5px;font-weight:600;color:#5B6472;background:none;border:1px solid #E2E5EA;border-radius:6px;padding:5px 10px;flex-shrink:0;">Modifier</button>' +
+          '<button data-lib-remove="'+a.id+'" style="font-size:11.5px;font-weight:600;color:#9AA2AF;background:none;border:1px solid #E2E5EA;border-radius:6px;padding:5px 10px;flex-shrink:0;">Retirer</button>' +
+        '</div>';
+      }
+      var t = it.theme, qq = it.question;
       return '<div style="display:flex;align-items:center;gap:12px;border:1px solid #E2E5EA;border-radius:10px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap;">' +
         '<div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;">'+t.code+'</div>' +
         '<div style="flex:1;min-width:180px;">' +
@@ -2484,6 +2569,17 @@ function renderLibrary(){
   el.innerHTML = html;
   Array.prototype.forEach.call(el.querySelectorAll(".ddq-lib-openq"), function(btn){
     btn.addEventListener("click", function(){ openQuestionModal(btn.getAttribute("data-open-q")); });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll("[data-lib-edit]"), function(btn){
+    btn.addEventListener("click", function(){ openLibDocEditForm(btn.getAttribute("data-lib-edit")); });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll("[data-lib-remove]"), function(btn){
+    btn.addEventListener("click", function(){
+      if (!confirm("Retirer définitivement ce document ?")) return;
+      state.libraryDocs = (state.libraryDocs||[]).filter(function(d){ return d.id !== btn.getAttribute("data-lib-remove"); });
+      renderLibrary();
+      persist();
+    });
   });
 }
 
@@ -3436,6 +3532,7 @@ wireExportButtons();
 wireTabs();
 wirePlatformNav();
 wireDocspaceForm();
+wireLibraryForm();
 initGate();
 
 })();
