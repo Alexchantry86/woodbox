@@ -16,6 +16,10 @@
   .ddq-modal::-webkit-scrollbar-thumb { background: #D8DBE0; border-radius: 4px; }
   .ddq-qrow:hover { border-color: #C9CDD4 !important; background: #FAFBFC; }
   .ddq-drag-handle:hover { background: #EEF0F3; }
+  .ddq-note-editable { min-height: 54px; max-height: 260px; overflow-y: auto; }
+  .ddq-note-editable:empty:before { content: attr(data-placeholder); color: #9AA2AF; }
+  .ddq-note-editable ul, .ddq-note-editable ol { margin: 4px 0; padding-left: 22px; }
+  .ddq-note-editable:focus { outline: none; border-color: #2E5395 !important; }
   .ddq-drag-handle:active { cursor: grabbing; }
   .ddq-qrow.ddq-dragging { opacity: 0.35; }
   .ddq-qrow.ddq-drop-before { box-shadow: inset 0 2px 0 0 #2E5395; }
@@ -372,24 +376,24 @@ function wireNotesEdit(containerEl, notesArr, persistFn, renderFn){
       var wrapper = btn.closest(".ddq-note-item");
       var bodyEl = wrapper ? wrapper.querySelector(".ddq-note-body") : null;
       if (!bodyEl) return;
-      var taId = "ddq-note-edit-ta-" + note.id;
+      var editId = "ddq-note-edit-ce-" + note.id;
       bodyEl.innerHTML =
-        '<textarea id="'+taId+'" class="ddq-note-edit-textarea" rows="2" style="width:100%;border:1px solid #2E5395;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;font-size:13px;font-family:inherit;"></textarea>' +
-        noteToolbarHtml(toolbarIdFor(taId)) +
-        '<div id="'+taId+'-preview" style="display:none;background:#FAFBFC;border:1px dashed #D8DBE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px;color:#1A1F2B;line-height:1.45;"></div>' +
+        noteToolbarHtml(toolbarIdFor(editId)) +
+        '<div id="'+editId+'" class="ddq-note-editable" contenteditable="true" style="width:100%;border:1px solid #2E5395;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.45;color:#1A1F2B;"></div>' +
         '<div style="display:flex;gap:8px;margin-top:6px;">' +
           '<button class="ddq-note-save" type="button" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">Enregistrer</button>' +
           '<button class="ddq-note-cancel" type="button" style="background:none;border:none;color:#9AA2AF;font-size:11.5px;">Annuler</button>' +
         '</div>';
-      var ta = document.getElementById(taId);
-      ta.value = note.text;
-      ta.focus();
-      wireNoteToolbar(bodyEl, taId);
+      var editEl = document.getElementById(editId);
+      editEl.innerHTML = renderNoteBody(note); // show the rendered version, never raw markup
+      editEl.focus();
+      wireNoteToolbar(bodyEl, editId);
       bodyEl.querySelector(".ddq-note-save").addEventListener("click", function(){
-        var v = ta.value.trim();
-        if (!v) return;
-        note.text = v;
-        note.mentions = parseMentions(v);
+        var result = extractNoteContent(editEl);
+        if (!result.text.trim()) return;
+        note.text = result.text;
+        note.html = result.html;
+        note.mentions = parseMentions(result.text);
         note.editedAt = new Date().toISOString();
         persistFn();
         renderFn();
@@ -463,7 +467,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.10.1-firebase";
+var APP_VERSION = "2.11.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -1290,7 +1294,7 @@ var NOTE_COLORS = ["#DC2626","#D97706","#16A34A","#2E5395","#8C3F8C","#1A1F2B"];
 
 function noteToolbarHtml(toolbarId){
   var btnBase = "border:none;background:none;color:#5B6472;border-radius:6px;width:26px;height:24px;font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;";
-  return '<div id="'+toolbarId+'" class="ddq-note-toolbar" style="display:flex;align-items:center;gap:2px;margin-top:8px;margin-bottom:6px;padding:4px 5px;background:#F5F6F8;border:1px solid #E2E5EA;border-radius:8px;flex-wrap:wrap;">' +
+  return '<div id="'+toolbarId+'" class="ddq-note-toolbar" style="display:flex;align-items:center;gap:2px;margin-bottom:6px;padding:4px 5px;background:#F5F6F8;border:1px solid #E2E5EA;border-radius:8px;flex-wrap:wrap;">' +
     '<button type="button" class="ddq-nt-btn" data-nt-cmd="bold" title="Gras" style="'+btnBase+'font-weight:700;">B</button>' +
     '<button type="button" class="ddq-nt-btn" data-nt-cmd="italic" title="Italique" style="'+btnBase+'font-style:italic;font-family:Georgia,serif;">I</button>' +
     '<span style="width:1px;height:18px;background:#D8DBE0;margin:0 5px;"></span>' +
@@ -1304,110 +1308,177 @@ function noteToolbarHtml(toolbarId){
     NOTE_COLORS.map(function(c){ return '<button type="button" class="ddq-nt-color" data-nt-color="'+c+'" title="Couleur" style="width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #D8DBE0;background:'+c+';padding:0;cursor:pointer;margin:0 2px;"></button>'; }).join("") +
   '</div>';
 }
+function toolbarIdFor(editableId){ return editableId + "-toolbar"; }
 
-function autoResizeTextarea(ta){
-  if (!ta) return;
-  ta.style.height = "auto";
-  ta.style.height = Math.min(ta.scrollHeight + 2, 360) + "px";
+// ---- Sanitizer -----------------------------------------------------------
+// Notes are edited as rich text (contenteditable + execCommand) so formatting
+// applies live, exactly like Word — the user never sees markup syntax. Before
+// saving, the resulting HTML is rebuilt through this strict allowlist so only
+// the tags/attributes we explicitly recognize ever reach storage or the DOM.
+var NOTE_ALLOWED_TAGS = { B:1, STRONG:1, I:1, EM:1, UL:1, OL:1, LI:1, BR:1, DIV:1, P:1, SPAN:1, A:1 };
+
+function cssColorToHex(colorStr){
+  if (!colorStr) return null;
+  var s = String(colorStr).trim().toLowerCase();
+  var m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s);
+  if (m) {
+    return "#" + [m[1],m[2],m[3]].map(function(n){ var h = parseInt(n,10).toString(16); return h.length===1?"0"+h:h; }).join("");
+  }
+  if (/^#[0-9a-f]{6}$/.test(s)) return s;
+  return null;
 }
 
-function wireNoteToolbar(scopeEl, textareaId){
-  var ta = document.getElementById(textareaId);
-  if (!ta) return;
-  var previewEl = document.getElementById(textareaId + "-preview");
+function sanitizeNoteChildren(srcNode, destNode){
+  Array.prototype.forEach.call(srcNode.childNodes, function(child){
+    if (child.nodeType === 3) { destNode.appendChild(document.createTextNode(child.nodeValue)); return; }
+    if (child.nodeType !== 1) return;
+    var tag = child.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE") return;
 
-  function updatePreview(){
-    if (!previewEl) return;
-    if (ta.value.trim()) {
-      previewEl.style.display = "block";
-      previewEl.innerHTML = '<div style="font-size:9.5px;font-weight:700;color:#9AA2AF;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Aperçu</div>' + renderNoteContent(ta.value);
-    } else {
-      previewEl.style.display = "none";
+    // Some browsers render execCommand output as <font color=…> or CSS-styled <span> instead
+    // of <b>/<i>/colored <span style="color:…">. Normalize both into the same nested structure
+    // so formatting is never silently lost depending on which form the browser used.
+    if (tag === "FONT") {
+      var fontHex = cssColorToHex(child.getAttribute("color")) || cssColorToHex(child.style && child.style.color);
+      if (fontHex) {
+        var fontSpan = document.createElement("span");
+        fontSpan.style.color = fontHex;
+        sanitizeNoteChildren(child, fontSpan);
+        destNode.appendChild(fontSpan);
+      } else {
+        sanitizeNoteChildren(child, destNode);
+      }
+      return;
     }
-  }
+    if (tag === "SPAN") {
+      var styleColor = cssColorToHex(child.style && child.style.color);
+      var fw = child.style && child.style.fontWeight;
+      var isBoldSpan = fw === "bold" || fw === "bolder" || (fw && parseInt(fw, 10) >= 600);
+      var isItalicSpan = child.style && child.style.fontStyle === "italic";
+      var target = destNode;
+      if (styleColor) { var colorEl = document.createElement("span"); colorEl.style.color = styleColor; target.appendChild(colorEl); target = colorEl; }
+      if (isBoldSpan) { var boldEl = document.createElement("strong"); target.appendChild(boldEl); target = boldEl; }
+      if (isItalicSpan) { var italicEl = document.createElement("em"); target.appendChild(italicEl); target = italicEl; }
+      sanitizeNoteChildren(child, target);
+      return;
+    }
 
-  ta.addEventListener("input", function(){ autoResizeTextarea(ta); updatePreview(); });
-  autoResizeTextarea(ta);
-  updatePreview();
+    if (!NOTE_ALLOWED_TAGS[tag]) { sanitizeNoteChildren(child, destNode); return; }
+    var newEl;
+    if (tag === "A") {
+      var href = child.getAttribute("href") || "";
+      if (!/^https?:\/\//i.test(href)) { sanitizeNoteChildren(child, destNode); return; }
+      newEl = document.createElement("a");
+      newEl.setAttribute("href", href);
+      newEl.setAttribute("target", "_blank");
+      newEl.setAttribute("rel", "noopener noreferrer");
+      newEl.style.color = "#2E5395";
+      newEl.style.textDecoration = "underline";
+    } else {
+      newEl = document.createElement(tag.toLowerCase());
+    }
+    sanitizeNoteChildren(child, newEl);
+    destNode.appendChild(newEl);
+  });
+}
 
-  function wrapSelection(before, after){
-    var start = ta.selectionStart, end = ta.selectionEnd;
-    var selected = ta.value.slice(start, end) || "texte";
-    ta.value = ta.value.slice(0, start) + before + selected + after + ta.value.slice(end);
-    var newStart = start + before.length;
-    ta.focus();
-    ta.setSelectionRange(newStart, newStart + selected.length);
-    autoResizeTextarea(ta);
-    updatePreview();
-  }
-  function prefixLines(prefixFn){
-    var start = ta.selectionStart, end = ta.selectionEnd;
-    var value = ta.value;
-    var lineStart = value.lastIndexOf("\n", start-1) + 1;
-    var lineEnd = value.indexOf("\n", end);
-    if (lineEnd === -1) lineEnd = value.length;
-    var block = value.slice(lineStart, lineEnd);
-    var lines = block.split("\n");
-    var counter = 1;
-    var newLines = lines.map(function(l){ return prefixFn(l, counter++); });
-    var newBlock = newLines.join("\n");
-    ta.value = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
-    ta.focus();
-    ta.setSelectionRange(lineStart, lineStart + newBlock.length);
-    autoResizeTextarea(ta);
-    updatePreview();
-  }
+function sanitizeNoteHtml(rawHtml){
+  var src = document.createElement("div");
+  src.innerHTML = rawHtml; // parsed inert — never inserted into the live document, so nothing executes
+  var out = document.createElement("div");
+  sanitizeNoteChildren(src, out);
+  return out.innerHTML;
+}
 
-  Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(textareaId)+' .ddq-nt-btn'), function(btn){
-    // mousedown+preventDefault keeps the textarea focused and its selection intact —
-    // without this, the browser can shift focus to the button before "click" fires,
-    // which is why formatting appeared to do nothing.
+// Walks a (already-sanitized) fragment and turns @mentions / URLs inside text nodes
+// into the same tags renderInlineSegment() already produces, so both old plain-text
+// notes and new rich-text notes get identical mention/link treatment.
+function linkifyNoteChildren(node){
+  Array.prototype.slice.call(node.childNodes).forEach(function(child){
+    if (child.nodeType === 3) {
+      var text = child.nodeValue;
+      var html = renderInlineSegment(text);
+      if (html.indexOf("<") !== -1) {
+        var wrapper = document.createElement("span");
+        wrapper.innerHTML = html; // safe: produced entirely by renderInlineSegment, which escapes user text itself
+        var frag = document.createDocumentFragment();
+        while (wrapper.firstChild) frag.appendChild(wrapper.firstChild);
+        node.replaceChild(frag, child);
+      }
+      return;
+    }
+    if (child.nodeType === 1) linkifyNoteChildren(child);
+  });
+}
+
+// Reads an editable's content, sanitizes it, and bakes in mention/link highlighting.
+// Returns { html, text } — text is the plain-text extract used for search and for
+// detecting which users were @mentioned.
+function extractNoteContent(editableEl){
+  var sanitized = sanitizeNoteHtml(editableEl.innerHTML);
+  var work = document.createElement("div");
+  work.innerHTML = sanitized; // safe: sanitized is our own trusted output
+  linkifyNoteChildren(work);
+  return { html: work.innerHTML, text: editableEl.textContent || "" };
+}
+
+// Renders a stored note for display. New notes carry pre-sanitized .html (rendered as-is).
+// Older notes only have plain .text (possibly with the legacy **/*/[color=] markup from
+// the previous toolbar) and fall back to the original markdown-lite renderer.
+function renderNoteBody(note){
+  if (note && note.html) return note.html;
+  return renderNoteContent(note ? note.text : "");
+}
+
+function wireNoteToolbar(scopeEl, editableId){
+  var el = document.getElementById(editableId);
+  if (!el) return;
+  Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(editableId)+' .ddq-nt-btn'), function(btn){
+    // mousedown+preventDefault keeps the editor focused and its selection intact —
+    // without this, execCommand can silently act on nothing.
     btn.addEventListener("mousedown", function(e){ e.preventDefault(); });
     btn.addEventListener("click", function(){
+      el.focus();
       var cmd = btn.getAttribute("data-nt-cmd");
-      if (cmd === "bold") wrapSelection("**", "**");
-      else if (cmd === "italic") wrapSelection("*", "*");
-      else if (cmd === "bullet") prefixLines(function(l){ return /^\s*-\s/.test(l) ? l : "- " + l; });
-      else if (cmd === "number") prefixLines(function(l, i){ return /^\s*\d+\.\s/.test(l) ? l : i + ". " + l; });
+      if (cmd === "bold") document.execCommand("bold");
+      else if (cmd === "italic") document.execCommand("italic");
+      else if (cmd === "bullet") document.execCommand("insertUnorderedList");
+      else if (cmd === "number") document.execCommand("insertOrderedList");
     });
   });
-  Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(textareaId)+' .ddq-nt-color'), function(btn){
+  Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(editableId)+' .ddq-nt-color'), function(btn){
     btn.addEventListener("mousedown", function(e){ e.preventDefault(); });
-    btn.addEventListener("click", function(){ wrapSelection("[color="+btn.getAttribute("data-nt-color")+"]", "[/color]"); });
+    btn.addEventListener("click", function(){
+      el.focus();
+      document.execCommand("foreColor", false, btn.getAttribute("data-nt-color"));
+    });
   });
 }
-function toolbarIdFor(textareaId){ return textareaId + "-toolbar"; }
 
-function noteComposerHtml(textareaId, addBtnId, chipsId){
+function noteComposerHtml(editableId, addBtnId, chipsId){
   var chips = usersData.users.map(function(u){
-    return '<button type="button" class="ddq-tag-chip" data-tag-user="'+u.id+'" data-tag-target="'+textareaId+'" style="border:1px solid #E2E5EA;background:#fff;color:#5B6472;border-radius:12px;padding:3px 10px;font-size:11px;">@'+esc(u.name)+'</button>';
+    return '<button type="button" class="ddq-tag-chip" data-tag-user="'+u.id+'" data-tag-target="'+editableId+'" style="border:1px solid #E2E5EA;background:#fff;color:#5B6472;border-radius:12px;padding:3px 10px;font-size:11px;">@'+esc(u.name)+'</button>';
   }).join(" ");
   return (
-    '<textarea id="'+textareaId+'" rows="2" placeholder="Ajouter une note… (@Nom pour taguer quelqu\'un)" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;margin-top:8px;"></textarea>' +
-    noteToolbarHtml(toolbarIdFor(textareaId)) +
-    '<div id="'+textareaId+'-preview" style="display:none;background:#FAFBFC;border:1px dashed #D8DBE0;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px;color:#1A1F2B;line-height:1.45;"></div>' +
-    (chips ? '<div id="'+chipsId+'" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+chips+'</div>' : '') +
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:18px;">' +
+    noteToolbarHtml(toolbarIdFor(editableId)) +
+    '<div id="'+editableId+'" class="ddq-note-editable" contenteditable="true" data-placeholder="Ajouter une note… (@Nom pour taguer quelqu\'un)" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.45;color:#1A1F2B;"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:8px;">' +
       '<span style="font-size:11.5px;color:#9AA2AF;">Publié en tant que <strong style="color:#142850;">'+esc(currentUser?currentUser.name:"Anonyme")+'</strong></span>' +
       '<button id="'+addBtnId+'" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-weight:600;flex-shrink:0;">Ajouter</button>' +
-    '</div>'
+    '</div>' +
+    (chips ? '<div id="'+chipsId+'" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">'+chips+'</div>' : '<div style="margin-bottom:10px;"></div>')
   );
 }
 
 function wireTagChips(scopeEl){
   Array.prototype.forEach.call(scopeEl.querySelectorAll(".ddq-tag-chip"), function(chip){
+    chip.addEventListener("mousedown", function(e){ e.preventDefault(); });
     chip.addEventListener("click", function(){
-      var ta = document.getElementById(chip.getAttribute("data-tag-target"));
+      var el = document.getElementById(chip.getAttribute("data-tag-target"));
       var u = findUserById(chip.getAttribute("data-tag-user"));
-      if (!ta || !u) return;
-      var insert = "@" + u.name + " ";
-      var start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
-      var end = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
-      ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
-      var pos = start + insert.length;
-      ta.focus();
-      ta.setSelectionRange(pos, pos);
-      autoResizeTextarea(ta);
+      if (!el || !u) return;
+      el.focus();
+      document.execCommand("insertText", false, "@" + u.name + " ");
     });
   });
 }
@@ -1593,7 +1664,7 @@ function collectDealActivity(dealId, dealLike, dealLabel){
     }
     (q.notes||[]).forEach(function(n){
       events.push({ ts:n.timestamp, kind:"note", source:"deals", dealLabel:dealLabel, title:q.text, meta:(n.author||"Anonyme")+" · "+t.label,
-        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text,
+        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html,
         onClick: function(){ goToQuestionFromFeed(dealId, q.id); } });
     });
     (q.statusHistory||[]).forEach(function(h, i){
@@ -1612,7 +1683,7 @@ function collectExploActivity(){
     var sectorLabel = found ? found.sector.name : "";
     (c.notes||[]).forEach(function(n){
       events.push({ ts:n.timestamp, kind:"note", source:"exploration", dealLabel:"Exploration", title:c.name, meta:(n.author||"Anonyme")+" · "+sectorLabel,
-        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text,
+        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html,
         onClick: function(){ goToExploCompanyFromFeed(c.id); } });
     });
     (c.attachments||[]).forEach(function(a){
@@ -1806,7 +1877,7 @@ function renderHomeNotifications(){
     html += '<div class="ddq-notif-row" data-notif-idx="'+i+'" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:10px 12px;margin-bottom:6px;">' +
       '<div style="font-size:11px;color:#9AA2AF;margin-bottom:3px;"><strong style="color:'+authorColor(e.noteAuthor)+';">'+esc(e.noteAuthor||"Anonyme")+'</strong> vous a mentionné · '+esc(e.dealLabel)+' · '+fmtDate(e.ts)+'</div>' +
       '<div style="font-size:12.5px;color:#5B6472;margin-bottom:4px;">'+esc(e.title)+'</div>' +
-      '<div style="font-size:13px;color:#1A1F2B;">'+renderNoteContent(e.noteText)+'</div>' +
+      '<div style="font-size:13px;color:#1A1F2B;">'+renderNoteBody({html:e.noteHtml, text:e.noteText})+'</div>' +
     '</div>';
   });
   el.innerHTML = html;
@@ -2438,7 +2509,7 @@ function renderExploCompany(){
         '</div>' +
       '</div>' +
       '<div class="ddq-note-body">' +
-        '<div style="background:#F0F3F8;border-radius:0 10px 10px 10px;padding:8px 12px;font-size:13px;color:#1A1F2B;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;">'+renderNoteContent(n.text)+'</div>' +
+        '<div style="background:#F0F3F8;border-radius:0 10px 10px 10px;padding:8px 12px;font-size:13px;color:#1A1F2B;line-height:1.45;overflow-wrap:anywhere;">'+renderNoteBody(n)+'</div>' +
       '</div>' +
     '</div>';
   }).join("") || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucune note pour le moment.</div>';
@@ -2616,12 +2687,12 @@ function renderExploCompany(){
   });
 
   document.getElementById("ddq-explo-note-add").addEventListener("click", function(){
-    var textEl = document.getElementById("ddq-explo-note-text");
-    var text = textEl.value.trim();
-    if (!text) return;
+    var editEl = document.getElementById("ddq-explo-note-text");
+    var result = extractNoteContent(editEl);
+    if (!result.text.trim()) return;
     var author = currentUser ? currentUser.name : "Anonyme";
     c.notes = c.notes || [];
-    c.notes.push({ id: uid(), author: author, authorId: currentUser?currentUser.id:null, text: text, timestamp: new Date().toISOString(), mentions: parseMentions(text) });
+    c.notes.push({ id: uid(), author: author, authorId: currentUser?currentUser.id:null, text: result.text, html: result.html, timestamp: new Date().toISOString(), mentions: parseMentions(result.text) });
     persistExplo();
     renderExploCompany();
   });
@@ -3319,7 +3390,7 @@ function openQuestionModal(qid){
         '</div>' +
       '</div>' +
       '<div class="ddq-note-body">' +
-        '<div style="background:#F0F3F8;border-radius:0 10px 10px 10px;padding:8px 12px;font-size:13px;color:#1A1F2B;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">'+renderNoteContent(n.text)+'</div>' +
+        '<div style="background:#F0F3F8;border-radius:0 10px 10px 10px;padding:8px 12px;font-size:13px;color:#1A1F2B;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;">'+renderNoteBody(n)+'</div>' +
       '</div>' +
     '</div>';
   }).join("") || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucune note pour le moment.</div>';
@@ -3429,12 +3500,12 @@ function openQuestionModal(qid){
   document.getElementById("ddq-f-owner").addEventListener("change", function(e){ q.owner = e.target.value; persist(); render(); });
 
   document.getElementById("ddq-q-note-add").addEventListener("click", function(){
-    var textEl = document.getElementById("ddq-q-note-text");
-    var text = textEl.value.trim();
-    if (!text) return;
+    var editEl = document.getElementById("ddq-q-note-text");
+    var result = extractNoteContent(editEl);
+    if (!result.text.trim()) return;
     var author = currentUser ? currentUser.name : "Anonyme";
     q.notes = q.notes || [];
-    q.notes.push({ id: uid(), author: author, authorId: currentUser?currentUser.id:null, text: text, timestamp: new Date().toISOString(), mentions: parseMentions(text) });
+    q.notes.push({ id: uid(), author: author, authorId: currentUser?currentUser.id:null, text: result.text, html: result.html, timestamp: new Date().toISOString(), mentions: parseMentions(result.text) });
     persist();
     render();
     closeModalById("ddq-overlay-question");
