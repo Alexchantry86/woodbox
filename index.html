@@ -116,7 +116,8 @@
   <div id="ddq-view-explo-sectors" style="display:none;max-width:1240px;margin:0 auto;">
     <div class="ddq-crumb" data-crumb-home style="font-size:12px;color:#5B6472;cursor:pointer;margin-bottom:10px;">← Accueil</div>
     <div style="font-size:19px;font-weight:600;color:#142850;margin-bottom:4px;">Exploration</div>
-    <div style="font-size:12.5px;color:#5B6472;margin-bottom:18px;">Vue d'ensemble des secteurs suivis — cliquez une entreprise pour ouvrir sa fiche.</div>
+    <div style="font-size:12.5px;color:#5B6472;margin-bottom:12px;">Vue d'ensemble des secteurs suivis — cliquez une entreprise pour ouvrir sa fiche.</div>
+    <div id="ddq-explo-stage-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
     <div id="ddq-explo-sectors-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start;"></div>
   </div>
 
@@ -374,6 +375,7 @@ function wireNotesEdit(containerEl, notesArr, persistFn, renderFn){
       bodyEl.innerHTML =
         '<textarea id="'+taId+'" class="ddq-note-edit-textarea" rows="2" style="width:100%;border:1px solid #2E5395;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;font-size:13px;font-family:inherit;"></textarea>' +
         noteToolbarHtml(toolbarIdFor(taId)) +
+        '<div id="'+taId+'-preview" style="display:none;background:#FAFBFC;border:1px dashed #D8DBE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px;color:#1A1F2B;line-height:1.45;"></div>' +
         '<div style="display:flex;gap:8px;margin-top:6px;">' +
           '<button class="ddq-note-save" type="button" style="background:#2E5395;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">Enregistrer</button>' +
           '<button class="ddq-note-cancel" type="button" style="background:none;border:none;color:#9AA2AF;font-size:11.5px;">Annuler</button>' +
@@ -460,7 +462,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.8.1-firebase";
+var APP_VERSION = "2.9.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -1286,14 +1288,19 @@ function parseMentions(text){
 var NOTE_COLORS = ["#DC2626","#D97706","#16A34A","#2E5395","#8C3F8C","#1A1F2B"];
 
 function noteToolbarHtml(toolbarId){
-  var btnStyle = "border:1px solid #E2E5EA;background:#fff;color:#5B6472;border-radius:5px;padding:3px 9px;font-size:11.5px;line-height:1.4;";
-  return '<div id="'+toolbarId+'" class="ddq-note-toolbar" style="display:flex;align-items:center;gap:4px;margin-top:8px;margin-bottom:6px;flex-wrap:wrap;">' +
-    '<button type="button" class="ddq-nt-btn" data-nt-cmd="bold" title="Gras" style="'+btnStyle+'font-weight:700;">G</button>' +
-    '<button type="button" class="ddq-nt-btn" data-nt-cmd="italic" title="Italique" style="'+btnStyle+'font-style:italic;">I</button>' +
-    '<button type="button" class="ddq-nt-btn" data-nt-cmd="bullet" title="Liste à puces" style="'+btnStyle+'">• Liste</button>' +
-    '<button type="button" class="ddq-nt-btn" data-nt-cmd="number" title="Liste numérotée" style="'+btnStyle+'">1. Liste</button>' +
-    '<span style="width:1px;height:16px;background:#E2E5EA;margin:0 3px;"></span>' +
-    NOTE_COLORS.map(function(c){ return '<button type="button" class="ddq-nt-color" data-nt-color="'+c+'" title="Couleur" style="width:18px;height:18px;border-radius:4px;border:1px solid #E2E5EA;background:'+c+';padding:0;cursor:pointer;"></button>'; }).join("") +
+  var btnBase = "border:none;background:none;color:#5B6472;border-radius:6px;width:26px;height:24px;font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;";
+  return '<div id="'+toolbarId+'" class="ddq-note-toolbar" style="display:flex;align-items:center;gap:2px;margin-top:8px;margin-bottom:6px;padding:4px 5px;background:#F5F6F8;border:1px solid #E2E5EA;border-radius:8px;flex-wrap:wrap;">' +
+    '<button type="button" class="ddq-nt-btn" data-nt-cmd="bold" title="Gras" style="'+btnBase+'font-weight:700;">B</button>' +
+    '<button type="button" class="ddq-nt-btn" data-nt-cmd="italic" title="Italique" style="'+btnBase+'font-style:italic;font-family:Georgia,serif;">I</button>' +
+    '<span style="width:1px;height:18px;background:#D8DBE0;margin:0 5px;"></span>' +
+    '<button type="button" class="ddq-nt-btn" data-nt-cmd="bullet" title="Liste à puces" style="'+btnBase+'">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line></svg>' +
+    '</button>' +
+    '<button type="button" class="ddq-nt-btn" data-nt-cmd="number" title="Liste numérotée" style="'+btnBase+'">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="20" y2="6"></line><line x1="10" y1="12" x2="20" y2="12"></line><line x1="10" y1="18" x2="20" y2="18"></line><text x="1" y="9" font-size="8" fill="currentColor" stroke="none" font-family="Arial">1</text><text x="1" y="15" font-size="8" fill="currentColor" stroke="none" font-family="Arial">2</text><text x="1" y="21" font-size="8" fill="currentColor" stroke="none" font-family="Arial">3</text></svg>' +
+    '</button>' +
+    '<span style="width:1px;height:18px;background:#D8DBE0;margin:0 5px;"></span>' +
+    NOTE_COLORS.map(function(c){ return '<button type="button" class="ddq-nt-color" data-nt-color="'+c+'" title="Couleur" style="width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #D8DBE0;background:'+c+';padding:0;cursor:pointer;margin:0 2px;"></button>'; }).join("") +
   '</div>';
 }
 
@@ -1306,9 +1313,21 @@ function autoResizeTextarea(ta){
 function wireNoteToolbar(scopeEl, textareaId){
   var ta = document.getElementById(textareaId);
   if (!ta) return;
+  var previewEl = document.getElementById(textareaId + "-preview");
 
-  ta.addEventListener("input", function(){ autoResizeTextarea(ta); });
+  function updatePreview(){
+    if (!previewEl) return;
+    if (ta.value.trim()) {
+      previewEl.style.display = "block";
+      previewEl.innerHTML = '<div style="font-size:9.5px;font-weight:700;color:#9AA2AF;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Aperçu</div>' + renderNoteContent(ta.value);
+    } else {
+      previewEl.style.display = "none";
+    }
+  }
+
+  ta.addEventListener("input", function(){ autoResizeTextarea(ta); updatePreview(); });
   autoResizeTextarea(ta);
+  updatePreview();
 
   function wrapSelection(before, after){
     var start = ta.selectionStart, end = ta.selectionEnd;
@@ -1318,6 +1337,7 @@ function wireNoteToolbar(scopeEl, textareaId){
     ta.focus();
     ta.setSelectionRange(newStart, newStart + selected.length);
     autoResizeTextarea(ta);
+    updatePreview();
   }
   function prefixLines(prefixFn){
     var start = ta.selectionStart, end = ta.selectionEnd;
@@ -1334,9 +1354,14 @@ function wireNoteToolbar(scopeEl, textareaId){
     ta.focus();
     ta.setSelectionRange(lineStart, lineStart + newBlock.length);
     autoResizeTextarea(ta);
+    updatePreview();
   }
 
   Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(textareaId)+' .ddq-nt-btn'), function(btn){
+    // mousedown+preventDefault keeps the textarea focused and its selection intact —
+    // without this, the browser can shift focus to the button before "click" fires,
+    // which is why formatting appeared to do nothing.
+    btn.addEventListener("mousedown", function(e){ e.preventDefault(); });
     btn.addEventListener("click", function(){
       var cmd = btn.getAttribute("data-nt-cmd");
       if (cmd === "bold") wrapSelection("**", "**");
@@ -1346,6 +1371,7 @@ function wireNoteToolbar(scopeEl, textareaId){
     });
   });
   Array.prototype.forEach.call(scopeEl.querySelectorAll('#'+toolbarIdFor(textareaId)+' .ddq-nt-color'), function(btn){
+    btn.addEventListener("mousedown", function(e){ e.preventDefault(); });
     btn.addEventListener("click", function(){ wrapSelection("[color="+btn.getAttribute("data-nt-color")+"]", "[/color]"); });
   });
 }
@@ -1358,6 +1384,7 @@ function noteComposerHtml(textareaId, addBtnId, chipsId){
   return (
     '<textarea id="'+textareaId+'" rows="2" placeholder="Ajouter une note… (@Nom pour taguer quelqu\'un)" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;resize:none;overflow:hidden;margin-top:8px;"></textarea>' +
     noteToolbarHtml(toolbarIdFor(textareaId)) +
+    '<div id="'+textareaId+'-preview" style="display:none;background:#FAFBFC;border:1px dashed #D8DBE0;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px;color:#1A1F2B;line-height:1.45;"></div>' +
     (chips ? '<div id="'+chipsId+'" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+chips+'</div>' : '') +
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:18px;">' +
       '<span style="font-size:11.5px;color:#9AA2AF;">Publié en tant que <strong style="color:#142850;">'+esc(currentUser?currentUser.name:"Anonyme")+'</strong></span>' +
@@ -2054,38 +2081,62 @@ function renderDeals(){
 }
 
 var exploExpandedSectors = {};
+var exploStageFilter = "all";
+
+var EXPLO_STAGE_FILTERS = [
+  { value: "all", label: "Toutes" },
+  { value: "not_started", label: "Non démarré" },
+  { value: "in_progress", label: "En cours" },
+  { value: "dead", label: "Abandonné" }
+];
 
 function renderExploSectors(){
   var container = document.getElementById("ddq-explo-sectors-grid");
   if (!container) return;
 
+  var filtersEl = document.getElementById("ddq-explo-stage-filters");
+  if (filtersEl) {
+    filtersEl.innerHTML = EXPLO_STAGE_FILTERS.map(function(f){
+      var active = exploStageFilter === f.value;
+      return '<button class="ddq-explo-stagefilter" data-stage-filter="'+f.value+'" style="' +
+        (active ? "border:1px solid #142850;background:#142850;color:#fff;" : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;") +
+        'border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;">'+f.label+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(filtersEl.querySelectorAll("[data-stage-filter]"), function(btn){
+      btn.addEventListener("click", function(){
+        exploStageFilter = btn.getAttribute("data-stage-filter");
+        renderExploSectors();
+      });
+    });
+  }
+
   var html = explo.sectors.map(function(s, idx){
     var style = THEME_PALETTE[idx % THEME_PALETTE.length];
-    var p1 = s.companies.filter(function(c){ return c.priority === 1; }).length;
-    var sorted = s.companies.slice().sort(function(a,b){ return (a.priority||9) - (b.priority||9); });
+    var allSorted = s.companies.slice().sort(function(a,b){ return (a.priority||9) - (b.priority||9); });
+    var filtered = exploStageFilter === "all" ? allSorted : allSorted.filter(function(c){ return c.stage === exploStageFilter; });
+    if (exploStageFilter !== "all" && !filtered.length) return "";
+
+    var p1 = filtered.filter(function(c){ return c.priority === 1; }).length;
     var expanded = !!exploExpandedSectors[s.id];
-    var visible = expanded ? sorted : sorted.slice(0, 5);
-    var remaining = sorted.length - 5;
+    var visible = expanded ? filtered : filtered.slice(0, 5);
+    var remaining = filtered.length - 5;
 
     var rowsHtml = visible.length ? visible.map(function(c){
       var pStyle = PRIO_NUM_STYLE[c.priority] || PRIO_NUM_STYLE[3];
       var stStyle = exploStageStyle(c.stage);
-      var dealBadge = c.status === "deal" ? '<span style="font-size:10px;font-weight:600;color:#1F7A4D;background:#E3F5EA;border-radius:5px;padding:1px 6px;">Deal</span>' : "";
-      return '<div data-company="'+c.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;margin-bottom:6px;">' +
-        '<div style="display:flex;align-items:center;gap:7px;">' +
-          '<span title="Priorité '+c.priority+'" style="width:9px;height:9px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
-          '<span style="font-size:12.5px;font-weight:600;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.name)+'</span>' +
-        '</div>' +
-        (c.comment ? '<div style="font-size:10.5px;color:#5B6472;margin:2px 0 0 16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.comment)+'</div>' : '') +
-        '<div style="display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 0 16px;">' +
-          (c.region ? '<span style="font-size:10px;color:#5B6472;background:#F0F1F3;border-radius:5px;padding:1px 6px;">'+esc(c.region)+'</span>' : '') +
-          '<span style="font-size:10px;font-weight:600;color:'+stStyle.c+';background:'+stStyle.bg+';border-radius:5px;padding:1px 6px;">'+stStyle.label+'</span>' +
-          dealBadge +
-        '</div>' +
+      var rowBg = c.stage === "in_progress" ? "#EAFAF0" : (c.stage === "dead" ? "#F1F2F4" : "#fff");
+      var rowBorder = c.stage === "in_progress" ? "#B8E6C9" : (c.stage === "dead" ? "#DDE0E4" : "#E2E5EA");
+      var dealBadge = c.status === "deal" ? '<span style="font-size:9.5px;font-weight:600;color:#1F7A4D;background:#E3F5EA;border-radius:5px;padding:1px 6px;flex-shrink:0;">Deal</span>' : "";
+      return '<div data-company="'+c.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid '+rowBorder+';background:'+rowBg+';border-radius:8px;padding:7px 10px;margin-bottom:6px;display:flex;align-items:center;gap:7px;">' +
+        '<span title="Priorité '+c.priority+'" style="width:8px;height:8px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
+        '<span style="font-size:12.5px;font-weight:600;color:#1A1F2B;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.name)+'</span>' +
+        (c.region ? '<span style="font-size:10px;color:#5B6472;flex-shrink:0;">'+esc(c.region)+'</span>' : '') +
+        '<span style="font-size:10px;font-weight:600;color:'+stStyle.c+';flex-shrink:0;white-space:nowrap;">'+stStyle.label+'</span>' +
+        dealBadge +
       '</div>';
     }).join("") : '<div style="font-size:12.5px;color:#9AA2AF;padding:8px 0;">Aucune entreprise pour le moment.</div>';
 
-    var toggleHtml = sorted.length > 5
+    var toggleHtml = filtered.length > 5
       ? '<button data-sector-toggle="'+s.id+'" style="width:100%;background:none;border:none;color:#2E5395;font-size:12px;font-weight:600;padding:4px 0 2px;text-align:left;">' +
           (expanded ? "Voir moins ↑" : "Voir les " + remaining + " autres ↓") +
         '</button>'
@@ -2096,14 +2147,14 @@ function renderExploSectors(){
         '<div style="width:32px;height:32px;border-radius:8px;background:'+style.bg+';color:'+style.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex-shrink:0;">'+esc(s.code)+'</div>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-size:13.5px;font-weight:700;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.name)+'</div>' +
-          '<div style="font-size:10.5px;color:#5B6472;">'+s.companies.length+' entreprise'+(s.companies.length>1?'s':'')+(p1?' · '+p1+' priorité 1':'')+'</div>' +
+          '<div style="font-size:10.5px;color:#5B6472;">'+filtered.length+' entreprise'+(filtered.length>1?'s':'')+(p1?' · '+p1+' priorité 1':'')+'</div>' +
         '</div>' +
       '</div>' +
       '<div style="flex:1;">' + rowsHtml + '</div>' +
       toggleHtml +
       '<button data-sector-addcompany="'+s.id+'" style="width:100%;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:8px;padding:7px 10px;color:#5B6472;font-size:11.5px;font-weight:600;margin-top:8px;">+ Ajouter une entreprise</button>' +
     '</div>';
-  }).join("");
+  }).filter(Boolean).join("");
 
   html += '<div id="ddq-explo-sector-add" style="cursor:pointer;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:12px;padding:16px 18px;text-align:center;color:#5B6472;font-size:12.5px;font-weight:600;">' +
     '<span style="font-size:16px;line-height:1;">+</span> Ajouter un secteur' +
@@ -2219,6 +2270,62 @@ var EXPLO_STAGE_STYLE = {
 };
 function exploStageStyle(stage){ return EXPLO_STAGE_STYLE[stage] || EXPLO_STAGE_STYLE.not_started; }
 
+var exploCompanyTab = "notes";
+
+function closeExploDocModal(){ closeModalById("ddq-overlay-explo-doc"); }
+
+function openExploDocModal(editDocId){
+  var found = findExploCompany(currentExploCompanyId);
+  if (!found) return;
+  var c = found.company;
+  var editing = editDocId ? (c.attachments||[]).filter(function(a){ return a.id===editDocId; })[0] : null;
+
+  var html =
+    '<div id="ddq-overlay-explo-doc" class="ddq-overlay">' +
+      '<div class="ddq-modal" style="max-width:420px;padding:20px 22px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+          '<div style="font-size:14.5px;font-weight:600;color:#142850;">'+(editing?"Modifier le document":"Ajouter un document")+'</div>' +
+          '<button id="ddq-ed-close" style="border:none;background:none;color:#9AA2AF;font-size:20px;line-height:1;cursor:pointer;">×</button>' +
+        '</div>' +
+        '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Nom du document</label>' +
+        '<input id="ddq-ed-name" placeholder="Ex. Business plan 2026" value="'+(editing?esc(editing.name):"")+'" style="width:100%;border:1px solid #E2E5EA;border-radius:6px;padding:8px 10px;font-size:12.5px;margin-bottom:10px;" />' +
+        '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Lien (Google Drive, etc.)</label>' +
+        '<input id="ddq-ed-url" placeholder="https://…" value="'+(editing?esc(editing.url||""):"")+'" style="width:100%;border:1px solid #E2E5EA;border-radius:6px;padding:8px 10px;font-size:12.5px;margin-bottom:10px;" />' +
+        '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Note (optionnel)</label>' +
+        '<input id="ddq-ed-note" placeholder="Note" value="'+(editing?esc(editing.note||""):"")+'" style="width:100%;border:1px solid #E2E5EA;border-radius:6px;padding:8px 10px;font-size:12.5px;margin-bottom:16px;" />' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button id="ddq-ed-save" style="flex:1;background:#2E5395;color:#fff;border:none;border-radius:6px;padding:8px;font-weight:600;font-size:12.5px;">Enregistrer</button>' +
+          '<button id="ddq-ed-cancel" style="background:#fff;border:1px solid #E2E5EA;color:#5B6472;border-radius:6px;padding:8px 16px;font-size:12.5px;">Annuler</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  var wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  document.getElementById("ddq-modals").appendChild(wrap.firstChild);
+
+  document.getElementById("ddq-overlay-explo-doc").addEventListener("mousedown", function(e){ if (e.target.id === "ddq-overlay-explo-doc") closeExploDocModal(); });
+  document.getElementById("ddq-ed-close").addEventListener("click", closeExploDocModal);
+  document.getElementById("ddq-ed-cancel").addEventListener("click", closeExploDocModal);
+  document.getElementById("ddq-ed-save").addEventListener("click", function(){
+    var url = document.getElementById("ddq-ed-url").value.trim();
+    if (!url) { alert("Merci de renseigner un lien."); return; }
+    var name = document.getElementById("ddq-ed-name").value.trim() || "Document";
+    var note = document.getElementById("ddq-ed-note").value.trim();
+    c.attachments = c.attachments || [];
+    if (editing) {
+      editing.name = name; editing.url = url; editing.note = note; editing.editedAt = new Date().toISOString();
+    } else {
+      c.attachments.push({ id: uid(), name: name, url: url, note: note, timestamp: new Date().toISOString() });
+    }
+    closeExploDocModal();
+    renderExploCompany();
+    persistExplo().then(function(ok){
+      if (!ok) alert("Le document n'a pas pu être enregistré en ligne — vérifiez la connexion et réessayez.");
+    });
+  });
+  document.getElementById("ddq-ed-name").focus();
+}
+
 function renderExploCompany(){
   var found = findExploCompany(currentExploCompanyId);
   var body = document.getElementById("ddq-explo-company-body");
@@ -2226,7 +2333,8 @@ function renderExploCompany(){
   var c = found.company, sector = found.sector;
   var pStyle = PRIO_NUM_STYLE[c.priority] || PRIO_NUM_STYLE[3];
   var stStyle = exploStageStyle(c.stage);
-  var contact = c.contact;
+  var contact = c.contact || {};
+  var isDeal = c.status === "deal";
 
   var notesHtml = (c.notes||[]).slice().sort(function(a,b){ return new Date(b.timestamp)-new Date(a.timestamp); }).map(function(n){
     return '<div class="ddq-note-item" style="margin-bottom:12px;">' +
@@ -2250,79 +2358,92 @@ function renderExploCompany(){
     var nameHtml = a.url
       ? '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="font-weight:600;color:#142850;text-decoration:underline;">'+esc(a.name)+'</a>'
       : '<span style="font-weight:600;">'+esc(a.name)+'</span>';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;background:#FAFBFC;border:1px solid #E2E5EA;border-radius:8px;padding:6px 10px;margin-bottom:6px;gap:8px;flex-wrap:wrap;">' +
-      '<div style="font-size:12px;color:#1A1F2B;flex:1;min-width:140px;">'+nameHtml + (a.note ? ' — <span style="color:#5B6472;">'+esc(a.note)+'</span>' : '') + '</div>' +
-      '<button data-att-remove="'+a.id+'" style="border:none;background:none;color:#9AA2AF;font-size:12px;">Retirer</button>' +
+    return '<div style="display:flex;justify-content:space-between;align-items:center;background:#FAFBFC;border:1px solid #E2E5EA;border-radius:8px;padding:8px 12px;margin-bottom:6px;gap:8px;flex-wrap:wrap;">' +
+      '<div style="font-size:12.5px;color:#1A1F2B;flex:1;min-width:140px;">'+nameHtml + (a.note ? ' — <span style="color:#5B6472;">'+esc(a.note)+'</span>' : '') + '</div>' +
+      '<button data-att-edit="'+a.id+'" style="border:none;background:none;color:#5B6472;font-size:11.5px;">Modifier</button>' +
+      '<button data-att-remove="'+a.id+'" style="border:none;background:none;color:#9AA2AF;font-size:11.5px;">Retirer</button>' +
     '</div>';
-  }).join("");
+  }).join("") || '<div style="font-size:12px;color:#9AA2AF;padding:8px 0;">Aucun document pour le moment.</div>';
 
-  var isDeal = c.status === "deal";
-  var contact = c.contact || {};
+  var lblStyle = "font-size:10px;color:#9AA2AF;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.02em;";
+  var inputStyle = "border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;font-size:12px;width:100%;";
 
   body.innerHTML =
-    '<div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:20px 22px;margin-bottom:16px;">' +
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">' +
+    '<div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:14px 16px;margin-bottom:14px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">' +
         '<div>' +
-          '<div style="font-size:18px;font-weight:600;color:#142850;">'+esc(c.name)+'</div>' +
-          '<div style="font-size:12.5px;color:#5B6472;margin-top:2px;">'+esc(sector.name)+'</div>' +
+          '<div style="font-size:16px;font-weight:600;color:#142850;">'+esc(c.name)+'</div>' +
+          '<div style="font-size:11.5px;color:#5B6472;">'+esc(sector.name)+'</div>' +
         '</div>' +
-        '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">' +
-          '<select id="ddq-explo-f-stage" style="font-size:11.5px;font-weight:600;color:'+stStyle.c+';background:'+stStyle.bg+';border:none;border-radius:6px;padding:6px 10px;">' +
+        '<div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">' +
+          '<select id="ddq-explo-f-stage" style="font-size:11px;font-weight:600;color:'+stStyle.c+';background:'+stStyle.bg+';border:none;border-radius:6px;padding:5px 8px;">' +
             EXPLO_STAGES.map(function(s){ return '<option value="'+s+'" '+(s===c.stage?"selected":"")+'>'+exploStageStyle(s).label+'</option>'; }).join("") +
           '</select>' +
-          '<select id="ddq-explo-f-priority" style="font-size:11.5px;font-weight:600;color:'+pStyle.c+';background:'+pStyle.bg+';border:none;border-radius:6px;padding:6px 10px;">' +
+          '<select id="ddq-explo-f-priority" style="font-size:11px;font-weight:600;color:'+pStyle.c+';background:'+pStyle.bg+';border:none;border-radius:6px;padding:5px 8px;">' +
             [1,2,3].map(function(p){ return '<option value="'+p+'" '+(p===c.priority?"selected":"")+'>Priorité '+p+'</option>'; }).join("") +
           '</select>' +
         '</div>' +
       '</div>' +
 
-      '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Région</label>' +
-      '<input id="ddq-explo-f-region" value="'+esc(c.region||"")+'" placeholder="Région" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;width:100%;margin-bottom:12px;font-size:12.5px;" />' +
-
-      '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Description / qualification</label>' +
-      '<textarea id="ddq-explo-f-comment" rows="2" placeholder="Description de l\'entreprise, éléments de qualification…" style="width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;resize:vertical;margin-bottom:16px;font-size:12.5px;">'+esc(c.comment||"")+'</textarea>' +
-
-      '<div style="font-size:11.5px;font-weight:600;color:#142850;margin-bottom:8px;">Contact</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:16px;">' +
-        '<input id="ddq-explo-f-contact-prenom" value="'+esc(contact.prenom||"")+'" placeholder="Prénom" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;" />' +
-        '<input id="ddq-explo-f-contact-nom" value="'+esc(contact.nom||"")+'" placeholder="Nom" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;" />' +
-        '<input id="ddq-explo-f-contact-tel" value="'+esc(contact.tel||"")+'" placeholder="Téléphone" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;" />' +
-        '<input id="ddq-explo-f-contact-email" value="'+esc(contact.email||"")+'" placeholder="Email" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;" />' +
-        '<input id="ddq-explo-f-contact-site" value="'+esc(contact.site||"")+'" placeholder="Site web (https://…)" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;grid-column:1 / -1;" />' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;">' +
+        '<div><label style="'+lblStyle+'">Région</label><input id="ddq-explo-f-region" value="'+esc(c.region||"")+'" style="'+inputStyle+'" /></div>' +
+        '<div><label style="'+lblStyle+'">Site web</label><input id="ddq-explo-f-contact-site" value="'+esc(contact.site||"")+'" placeholder="https://…" style="'+inputStyle+'" /></div>' +
+      '</div>' +
+      '<label style="'+lblStyle+'">Description / qualification</label>' +
+      '<textarea id="ddq-explo-f-comment" rows="1" style="'+inputStyle+'resize:vertical;margin-bottom:7px;">'+esc(c.comment||"")+'</textarea>' +
+      '<label style="'+lblStyle+'">Dossier Google Drive</label>' +
+      '<div style="display:flex;gap:5px;align-items:center;margin-bottom:10px;">' +
+        '<input id="ddq-explo-f-drive" value="'+esc(c.driveFolder||"")+'" style="'+inputStyle+'" />' +
+        (c.driveFolder ? '<a href="'+esc(c.driveFolder)+'" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:#142850;white-space:nowrap;">Ouvrir ↗</a>' : '<span style="font-size:11px;color:#C9CDD4;white-space:nowrap;">Ouvrir ↗</span>') +
       '</div>' +
 
-      '<label style="font-size:11px;color:#5B6472;display:block;margin-bottom:4px;">Dossier Google Drive</label>' +
-      '<div style="display:flex;gap:6px;align-items:center;margin-bottom:16px;">' +
-        '<input id="ddq-explo-f-drive" value="'+esc(c.driveFolder||"")+'" placeholder="Lien du dossier Drive" style="flex:1;border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;font-size:12.5px;" />' +
-        (c.driveFolder ? '<a href="'+esc(c.driveFolder)+'" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:600;color:#142850;white-space:nowrap;">Ouvrir ↗</a>' : '<span style="font-size:11.5px;color:#C9CDD4;white-space:nowrap;">Ouvrir ↗</span>') +
+      '<div style="font-size:10px;font-weight:700;color:#9AA2AF;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Contact</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">' +
+        '<div><label style="'+lblStyle+'">Prénom</label><input id="ddq-explo-f-contact-prenom" value="'+esc(contact.prenom||"")+'" style="'+inputStyle+'" /></div>' +
+        '<div><label style="'+lblStyle+'">Nom</label><input id="ddq-explo-f-contact-nom" value="'+esc(contact.nom||"")+'" style="'+inputStyle+'" /></div>' +
+        '<div><label style="'+lblStyle+'">Téléphone</label><input id="ddq-explo-f-contact-tel" value="'+esc(contact.tel||"")+'" style="'+inputStyle+'" /></div>' +
+        '<div><label style="'+lblStyle+'">Email</label><input id="ddq-explo-f-contact-email" value="'+esc(contact.email||"")+'" style="'+inputStyle+'" /></div>' +
       '</div>' +
 
-      '<button id="ddq-explo-convert" style="margin-top:0;width:100%;background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';border-radius:8px;padding:9px 14px;font-weight:600;font-size:12.5px;">' +
+      '<button id="ddq-explo-convert" style="width:100%;background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';border-radius:8px;padding:7px 12px;font-weight:600;font-size:12px;">' +
         (isDeal ? "Retirer de « Deals en cours »" : "Convertir en « Deals en cours »") +
       '</button>' +
-      (c.dealId ? '<button id="ddq-explo-open-deal" style="margin-top:8px;width:100%;background:#fff;color:#142850;border:1px solid #E2E5EA;border-radius:8px;padding:9px 14px;font-weight:600;font-size:12.5px;">Ouvrir l\'espace de suivi</button>' : '') +
+      (c.dealId ? '<button id="ddq-explo-open-deal" style="margin-top:6px;width:100%;background:#fff;color:#142850;border:1px solid #E2E5EA;border-radius:8px;padding:7px 12px;font-weight:600;font-size:12px;">Ouvrir l\'espace de suivi</button>' : '') +
     '</div>' +
 
-    '<div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:20px 22px;margin-bottom:16px;">' +
-      '<div style="font-size:13.5px;font-weight:600;color:#142850;margin-bottom:12px;">Notes</div>' +
+    '<div style="display:flex;gap:18px;border-bottom:1px solid #E2E5EA;margin-bottom:14px;">' +
+      '<button class="ddq-ec-tab" data-ec-tab="notes" style="border:none;background:none;padding:0 0 9px;font-size:13px;font-weight:600;color:#142850;border-bottom:2px solid #142850;">Notes</button>' +
+      '<button class="ddq-ec-tab" data-ec-tab="documents" style="border:none;background:none;padding:0 0 9px;font-size:13px;font-weight:600;color:#9AA2AF;border-bottom:2px solid transparent;">Documents'+((c.attachments||[]).length?' ('+c.attachments.length+')':'')+'</button>' +
+    '</div>' +
+
+    '<div id="ddq-ec-tab-notes">' +
       '<div id="ddq-explo-notes-list">'+notesHtml+'</div>' +
       noteComposerHtml("ddq-explo-note-text", "ddq-explo-note-add", "ddq-explo-note-chips") +
     '</div>' +
 
-    '<div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:20px 22px;">' +
-      '<div style="font-size:13.5px;font-weight:600;color:#142850;margin-bottom:12px;">Documents</div>' +
-      '<div id="ddq-explo-att-list">' + (attRows || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucun document pour le moment.</div>') + '</div>' +
-      '<div style="border:1px dashed #C9CDD4;border-radius:8px;padding:10px;margin-top:8px;">' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<input id="ddq-explo-att-url" placeholder="Lien Google Drive" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:2;min-width:180px;" />' +
-          '<input id="ddq-explo-att-name" placeholder="Nom du document" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:140px;" />' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
-          '<input id="ddq-explo-att-note" placeholder="Note (optionnel)" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:120px;" />' +
-          '<button id="ddq-explo-att-add" style="background:#fff;color:#142850;border:1px solid #142850;border-radius:6px;padding:6px 14px;font-weight:600;">Associer</button>' +
-        '</div>' +
+    '<div id="ddq-ec-tab-documents" style="display:none;">' +
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">' +
+        '<button id="ddq-explo-doc-add-icon" title="Ajouter un document" style="width:32px;height:32px;border-radius:8px;background:#142850;color:#fff;border:none;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>' +
+        '</button>' +
       '</div>' +
+      '<div id="ddq-explo-att-list">' + attRows + '</div>' +
     '</div>';
+
+  Array.prototype.forEach.call(body.querySelectorAll(".ddq-ec-tab"), function(btn){
+    btn.addEventListener("click", function(){
+      exploCompanyTab = btn.getAttribute("data-ec-tab");
+      Array.prototype.forEach.call(body.querySelectorAll(".ddq-ec-tab"), function(b){
+        var active = b === btn;
+        b.style.color = active ? "#142850" : "#9AA2AF";
+        b.style.borderBottomColor = active ? "#142850" : "transparent";
+      });
+      document.getElementById("ddq-ec-tab-notes").style.display = exploCompanyTab === "notes" ? "" : "none";
+      document.getElementById("ddq-ec-tab-documents").style.display = exploCompanyTab === "documents" ? "" : "none";
+    });
+  });
+  var initialTabBtn = body.querySelector('.ddq-ec-tab[data-ec-tab="'+exploCompanyTab+'"]');
+  if (initialTabBtn) initialTabBtn.click();
 
   document.getElementById("ddq-explo-f-priority").addEventListener("change", function(e){
     c.priority = parseInt(e.target.value, 10);
@@ -2374,6 +2495,10 @@ function renderExploCompany(){
     document.getElementById("ddq-explo-open-deal").addEventListener("click", function(){ openGenericDeal(c.dealId); });
   }
 
+  document.getElementById("ddq-explo-doc-add-icon").addEventListener("click", function(){ openExploDocModal(null); });
+  Array.prototype.forEach.call(body.querySelectorAll("[data-att-edit]"), function(btn){
+    btn.addEventListener("click", function(){ openExploDocModal(btn.getAttribute("data-att-edit")); });
+  });
   Array.prototype.forEach.call(body.querySelectorAll("[data-att-remove]"), function(btn){
     btn.addEventListener("click", function(){
       var attId = btn.getAttribute("data-att-remove");
@@ -2406,18 +2531,6 @@ function renderExploCompany(){
     });
   });
   wireNotesEdit(body, c.notes||[], persistExplo, renderExploCompany);
-
-  document.getElementById("ddq-explo-att-add").addEventListener("click", function(){
-    var urlInput = document.getElementById("ddq-explo-att-url");
-    var url = urlInput.value.trim();
-    if (!url) { urlInput.focus(); return; }
-    var name = document.getElementById("ddq-explo-att-name").value.trim() || "Document";
-    var note = document.getElementById("ddq-explo-att-note").value.trim();
-    c.attachments = c.attachments || [];
-    c.attachments.push({ id: uid(), name: name, note: note, url: url, timestamp: new Date().toISOString() });
-    persistExplo();
-    renderExploCompany();
-  });
 }
 
 function render(){
