@@ -463,7 +463,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.10.0-firebase";
+var APP_VERSION = "2.10.1-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -2501,7 +2501,7 @@ function renderExploCompany(){
       '</div>' +
 
       '<label style="'+lblStyle+'">Description / qualification</label>' +
-      '<textarea id="ddq-explo-f-comment" rows="10" style="'+inputStyle+'resize:vertical;overflow-y:auto;margin-bottom:3px;">'+esc(c.comment||"")+'</textarea>' +
+      '<textarea id="ddq-explo-f-comment" rows="5" style="'+inputStyle+'resize:vertical;overflow-y:auto;margin-bottom:3px;">'+esc(c.comment||"")+'</textarea>' +
       '<button type="button" id="ddq-explo-desc-toggle" style="border:none;background:none;color:#2E5395;font-size:11px;font-weight:600;display:none;">Déplier ↓</button>' +
     '</div>' +
 
