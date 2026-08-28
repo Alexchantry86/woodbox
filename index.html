@@ -117,7 +117,8 @@
     <div class="ddq-crumb" data-crumb-home style="font-size:12px;color:#5B6472;cursor:pointer;margin-bottom:10px;">← Accueil</div>
     <div style="font-size:19px;font-weight:600;color:#142850;margin-bottom:4px;">Exploration</div>
     <div style="font-size:12.5px;color:#5B6472;margin-bottom:12px;">Vue d'ensemble des secteurs suivis — cliquez une entreprise pour ouvrir sa fiche.</div>
-    <div id="ddq-explo-stage-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
+    <div id="ddq-explo-stage-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>
+    <div id="ddq-explo-priority-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
     <div id="ddq-explo-sectors-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start;"></div>
   </div>
 
@@ -462,7 +463,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.9.0-firebase";
+var APP_VERSION = "2.9.2-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -2082,29 +2083,52 @@ function renderDeals(){
 
 var exploExpandedSectors = {};
 var exploStageFilter = "all";
+var exploPriorityFilter = "all";
 
 var EXPLO_STAGE_FILTERS = [
   { value: "all", label: "Toutes" },
   { value: "not_started", label: "Non démarré" },
   { value: "in_progress", label: "En cours" },
+  { value: "on_hold", label: "En pause" },
   { value: "dead", label: "Abandonné" }
+];
+var EXPLO_PRIORITY_FILTERS = [
+  { value: "all", label: "Toutes priorités" },
+  { value: "1", label: "Priorité 1" },
+  { value: "2", label: "Priorité 2" },
+  { value: "3", label: "Priorité 3" }
 ];
 
 function renderExploSectors(){
   var container = document.getElementById("ddq-explo-sectors-grid");
   if (!container) return;
 
-  var filtersEl = document.getElementById("ddq-explo-stage-filters");
-  if (filtersEl) {
-    filtersEl.innerHTML = EXPLO_STAGE_FILTERS.map(function(f){
+  var stageFiltersEl = document.getElementById("ddq-explo-stage-filters");
+  if (stageFiltersEl) {
+    stageFiltersEl.innerHTML = EXPLO_STAGE_FILTERS.map(function(f){
       var active = exploStageFilter === f.value;
       return '<button class="ddq-explo-stagefilter" data-stage-filter="'+f.value+'" style="' +
         (active ? "border:1px solid #142850;background:#142850;color:#fff;" : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;") +
         'border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;">'+f.label+'</button>';
     }).join("");
-    Array.prototype.forEach.call(filtersEl.querySelectorAll("[data-stage-filter]"), function(btn){
+    Array.prototype.forEach.call(stageFiltersEl.querySelectorAll("[data-stage-filter]"), function(btn){
       btn.addEventListener("click", function(){
         exploStageFilter = btn.getAttribute("data-stage-filter");
+        renderExploSectors();
+      });
+    });
+  }
+  var prioFiltersEl = document.getElementById("ddq-explo-priority-filters");
+  if (prioFiltersEl) {
+    prioFiltersEl.innerHTML = EXPLO_PRIORITY_FILTERS.map(function(f){
+      var active = exploPriorityFilter === f.value;
+      return '<button class="ddq-explo-priofilter" data-priority-filter="'+f.value+'" style="' +
+        (active ? "border:1px solid #A32D2D;background:#A32D2D;color:#fff;" : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;") +
+        'border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;">'+f.label+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(prioFiltersEl.querySelectorAll("[data-priority-filter]"), function(btn){
+      btn.addEventListener("click", function(){
+        exploPriorityFilter = btn.getAttribute("data-priority-filter");
         renderExploSectors();
       });
     });
@@ -2113,8 +2137,10 @@ function renderExploSectors(){
   var html = explo.sectors.map(function(s, idx){
     var style = THEME_PALETTE[idx % THEME_PALETTE.length];
     var allSorted = s.companies.slice().sort(function(a,b){ return (a.priority||9) - (b.priority||9); });
-    var filtered = exploStageFilter === "all" ? allSorted : allSorted.filter(function(c){ return c.stage === exploStageFilter; });
-    if (exploStageFilter !== "all" && !filtered.length) return "";
+    var filtered = allSorted;
+    if (exploStageFilter !== "all") filtered = filtered.filter(function(c){ return c.stage === exploStageFilter; });
+    if (exploPriorityFilter !== "all") filtered = filtered.filter(function(c){ return String(c.priority) === exploPriorityFilter; });
+    if ((exploStageFilter !== "all" || exploPriorityFilter !== "all") && !filtered.length) return "";
 
     var p1 = filtered.filter(function(c){ return c.priority === 1; }).length;
     var expanded = !!exploExpandedSectors[s.id];
@@ -2124,35 +2150,41 @@ function renderExploSectors(){
     var rowsHtml = visible.length ? visible.map(function(c){
       var pStyle = PRIO_NUM_STYLE[c.priority] || PRIO_NUM_STYLE[3];
       var stStyle = exploStageStyle(c.stage);
-      var rowBg = c.stage === "in_progress" ? "#EAFAF0" : (c.stage === "dead" ? "#F1F2F4" : "#fff");
-      var rowBorder = c.stage === "in_progress" ? "#B8E6C9" : (c.stage === "dead" ? "#DDE0E4" : "#E2E5EA");
+      var isDead = c.stage === "dead";
+      var isProgress = c.stage === "in_progress";
+      var isOnHold = c.stage === "on_hold";
+      var rowBg = isProgress ? "#D7F5E3" : (isOnHold ? "#FEF3C7" : (isDead ? "#F1F2F4" : "#fff"));
+      var rowBorder = isProgress ? "#7FDD9F" : (isOnHold ? "#F5D68A" : (isDead ? "#DDE0E4" : "#E2E5EA"));
+      var nameColor = isDead ? "#9AA2AF" : "#1A1F2B";
+      var regionColor = isDead ? "#B0B5BC" : "#5B6472";
+      var stageLabelColor = isDead ? "#9AA2AF" : stStyle.c;
       var dealBadge = c.status === "deal" ? '<span style="font-size:9.5px;font-weight:600;color:#1F7A4D;background:#E3F5EA;border-radius:5px;padding:1px 6px;flex-shrink:0;">Deal</span>' : "";
-      return '<div data-company="'+c.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid '+rowBorder+';background:'+rowBg+';border-radius:8px;padding:7px 10px;margin-bottom:6px;display:flex;align-items:center;gap:7px;">' +
+      return '<div data-company="'+c.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid '+rowBorder+';background:'+rowBg+';border-radius:7px;padding:6px 9px;margin-bottom:5px;display:flex;align-items:center;gap:7px;">' +
         '<span title="Priorité '+c.priority+'" style="width:8px;height:8px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
-        '<span style="font-size:12.5px;font-weight:600;color:#1A1F2B;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.name)+'</span>' +
-        (c.region ? '<span style="font-size:10px;color:#5B6472;flex-shrink:0;">'+esc(c.region)+'</span>' : '') +
-        '<span style="font-size:10px;font-weight:600;color:'+stStyle.c+';flex-shrink:0;white-space:nowrap;">'+stStyle.label+'</span>' +
+        '<span style="font-size:12px;font-weight:600;color:'+nameColor+';flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.name)+'</span>' +
+        (c.region ? '<span style="font-size:9.5px;color:'+regionColor+';flex-shrink:0;">'+esc(c.region)+'</span>' : '') +
+        '<span style="font-size:9.5px;font-weight:600;color:'+stageLabelColor+';flex-shrink:0;white-space:nowrap;">'+stStyle.label+'</span>' +
         dealBadge +
       '</div>';
-    }).join("") : '<div style="font-size:12.5px;color:#9AA2AF;padding:8px 0;">Aucune entreprise pour le moment.</div>';
+    }).join("") : '<div style="font-size:12px;color:#9AA2AF;padding:6px 0;">Aucune entreprise pour le moment.</div>';
 
     var toggleHtml = filtered.length > 5
-      ? '<button data-sector-toggle="'+s.id+'" style="width:100%;background:none;border:none;color:#2E5395;font-size:12px;font-weight:600;padding:4px 0 2px;text-align:left;">' +
+      ? '<button data-sector-toggle="'+s.id+'" style="width:100%;background:none;border:none;color:#2E5395;font-size:11.5px;font-weight:600;padding:3px 0 2px;text-align:left;">' +
           (expanded ? "Voir moins ↑" : "Voir les " + remaining + " autres ↓") +
         '</button>'
       : "";
 
-    return '<div style="background:#fff;border:1px solid #E2E5EA;border-top:4px solid '+style.color+';border-radius:10px 10px 12px 12px;padding:14px 16px;display:flex;flex-direction:column;min-height:440px;">' +
-      '<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px;">' +
-        '<div style="width:32px;height:32px;border-radius:8px;background:'+style.bg+';color:'+style.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex-shrink:0;">'+esc(s.code)+'</div>' +
+    return '<div style="background:#fff;border:1px solid #E2E5EA;border-top:4px solid '+style.color+';border-radius:10px 10px 12px 12px;padding:11px 13px;display:flex;flex-direction:column;min-height:310px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<div style="width:26px;height:26px;border-radius:7px;background:'+style.bg+';color:'+style.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10.5px;flex-shrink:0;">'+esc(s.code)+'</div>' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:13.5px;font-weight:700;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.name)+'</div>' +
-          '<div style="font-size:10.5px;color:#5B6472;">'+filtered.length+' entreprise'+(filtered.length>1?'s':'')+(p1?' · '+p1+' priorité 1':'')+'</div>' +
+          '<div style="font-size:12.5px;font-weight:700;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.name)+'</div>' +
+          '<div style="font-size:10px;color:#5B6472;">'+filtered.length+' entreprise'+(filtered.length>1?'s':'')+(p1?' · '+p1+' priorité 1':'')+'</div>' +
         '</div>' +
       '</div>' +
       '<div style="flex:1;">' + rowsHtml + '</div>' +
       toggleHtml +
-      '<button data-sector-addcompany="'+s.id+'" style="width:100%;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:8px;padding:7px 10px;color:#5B6472;font-size:11.5px;font-weight:600;margin-top:8px;">+ Ajouter une entreprise</button>' +
+      '<button data-sector-addcompany="'+s.id+'" style="width:100%;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:7px;padding:6px 10px;color:#5B6472;font-size:11px;font-weight:600;margin-top:6px;">+ Ajouter une entreprise</button>' +
     '</div>';
   }).filter(Boolean).join("");
 
@@ -2262,10 +2294,11 @@ var PRIO_NUM_STYLE = {
   3: { c:"#16A34A", bg:"#DCFCE7" }
 };
 
-var EXPLO_STAGES = ["not_started","in_progress","dead"];
+var EXPLO_STAGES = ["not_started","in_progress","on_hold","dead"];
 var EXPLO_STAGE_STYLE = {
   not_started: { label:"Non démarré", c:"#5B6472", bg:"#EEF0F3" },
   in_progress: { label:"En cours",    c:"#2E5395", bg:"#E6ECF7" },
+  on_hold:     { label:"En pause",    c:"#B45309", bg:"#FEF3C7" },
   dead:        { label:"Abandonné",   c:"#A32D2D", bg:"#F7E7E7" }
 };
 function exploStageStyle(stage){ return EXPLO_STAGE_STYLE[stage] || EXPLO_STAGE_STYLE.not_started; }
@@ -2385,30 +2418,35 @@ function renderExploCompany(){
         '</div>' +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:end;margin-bottom:12px;">' +
         '<div><label style="'+lblStyle+'">Région</label><input id="ddq-explo-f-region" value="'+esc(c.region||"")+'" style="'+inputStyle+'" /></div>' +
         '<div><label style="'+lblStyle+'">Site web</label><input id="ddq-explo-f-contact-site" value="'+esc(contact.site||"")+'" placeholder="https://…" style="'+inputStyle+'" /></div>' +
-      '</div>' +
-      '<label style="'+lblStyle+'">Description / qualification</label>' +
-      '<textarea id="ddq-explo-f-comment" rows="1" style="'+inputStyle+'resize:vertical;margin-bottom:7px;">'+esc(c.comment||"")+'</textarea>' +
-      '<label style="'+lblStyle+'">Dossier Google Drive</label>' +
-      '<div style="display:flex;gap:5px;align-items:center;margin-bottom:10px;">' +
-        '<input id="ddq-explo-f-drive" value="'+esc(c.driveFolder||"")+'" style="'+inputStyle+'" />' +
-        (c.driveFolder ? '<a href="'+esc(c.driveFolder)+'" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:#142850;white-space:nowrap;">Ouvrir ↗</a>' : '<span style="font-size:11px;color:#C9CDD4;white-space:nowrap;">Ouvrir ↗</span>') +
+        '<div style="display:flex;align-items:center;gap:5px;">' +
+          '<button id="ddq-explo-drive-btn" type="button" title="Dossier Google Drive" style="width:30px;height:30px;flex-shrink:0;border-radius:6px;border:1px solid '+(c.driveFolder?'#D9CDEF':'#E2E5EA')+';background:'+(c.driveFolder?'#EFE9F7':'#fff')+';color:'+(c.driveFolder?'#6B4A9E':'#9AA2AF')+';display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>' +
+          '</button>' +
+          (c.driveFolder ? '<a href="'+esc(c.driveFolder)+'" target="_blank" rel="noopener" style="font-size:10.5px;font-weight:600;color:#142850;white-space:nowrap;">Ouvrir ↗</a>' : '') +
+        '</div>' +
       '</div>' +
 
       '<div style="font-size:10px;font-weight:700;color:#9AA2AF;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Contact</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;">' +
         '<div><label style="'+lblStyle+'">Prénom</label><input id="ddq-explo-f-contact-prenom" value="'+esc(contact.prenom||"")+'" style="'+inputStyle+'" /></div>' +
         '<div><label style="'+lblStyle+'">Nom</label><input id="ddq-explo-f-contact-nom" value="'+esc(contact.nom||"")+'" style="'+inputStyle+'" /></div>' +
         '<div><label style="'+lblStyle+'">Téléphone</label><input id="ddq-explo-f-contact-tel" value="'+esc(contact.tel||"")+'" style="'+inputStyle+'" /></div>' +
         '<div><label style="'+lblStyle+'">Email</label><input id="ddq-explo-f-contact-email" value="'+esc(contact.email||"")+'" style="'+inputStyle+'" /></div>' +
       '</div>' +
 
-      '<button id="ddq-explo-convert" style="width:100%;background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';border-radius:8px;padding:7px 12px;font-weight:600;font-size:12px;">' +
-        (isDeal ? "Retirer de « Deals en cours »" : "Convertir en « Deals en cours »") +
-      '</button>' +
-      (c.dealId ? '<button id="ddq-explo-open-deal" style="margin-top:6px;width:100%;background:#fff;color:#142850;border:1px solid #E2E5EA;border-radius:8px;padding:7px 12px;font-weight:600;font-size:12px;">Ouvrir l\'espace de suivi</button>' : '') +
+      '<label style="'+lblStyle+'">Description / qualification</label>' +
+      '<textarea id="ddq-explo-f-comment" rows="1" style="'+inputStyle+'resize:vertical;max-height:210px;overflow-y:auto;margin-bottom:3px;">'+esc(c.comment||"")+'</textarea>' +
+      '<button type="button" id="ddq-explo-desc-toggle" style="border:none;background:none;color:#2E5395;font-size:11px;font-weight:600;margin-bottom:12px;">Déplier ↓</button>' +
+
+      '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">' +
+        (c.dealId ? '<button id="ddq-explo-open-deal" style="background:#fff;color:#142850;border:1px solid #E2E5EA;border-radius:8px;padding:7px 16px;font-weight:600;font-size:12px;">Ouvrir l\'espace de suivi</button>' : '') +
+        '<button id="ddq-explo-convert" style="background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';border-radius:8px;padding:7px 16px;font-weight:600;font-size:12px;">' +
+          (isDeal ? "Retirer de « Deals en cours »" : "Convertir en « Deals en cours »") +
+        '</button>' +
+      '</div>' +
     '</div>' +
 
     '<div style="display:flex;gap:18px;border-bottom:1px solid #E2E5EA;margin-bottom:14px;">' +
@@ -2469,9 +2507,27 @@ function renderExploCompany(){
   wireExploField("ddq-explo-f-contact-tel", function(v){ c.contact = c.contact || {}; c.contact.tel = v; });
   wireExploField("ddq-explo-f-contact-email", function(v){ c.contact = c.contact || {}; c.contact.email = v; });
   wireExploField("ddq-explo-f-contact-site", function(v){ c.contact = c.contact || {}; c.contact.site = v; });
+
+  document.getElementById("ddq-explo-drive-btn").addEventListener("click", function(){
+    var url = prompt("Lien du dossier Google Drive :", c.driveFolder || "");
+    if (url === null) return;
+    c.driveFolder = url.trim() || null;
+    persistExplo();
+    renderExploCompany();
+  });
+
   (function(){
-    var el = document.getElementById("ddq-explo-f-drive");
-    if (el) el.addEventListener("blur", function(){ c.driveFolder = el.value.trim() || null; persistExplo(); renderExploCompany(); });
+    var ta = document.getElementById("ddq-explo-f-comment");
+    var toggleBtn = document.getElementById("ddq-explo-desc-toggle");
+    if (!ta || !toggleBtn) return;
+    var expanded = false;
+    function applyState(){
+      ta.style.maxHeight = expanded ? "none" : "210px";
+      toggleBtn.textContent = expanded ? "Replier ↑" : "Déplier ↓";
+    }
+    applyState();
+    if (ta.scrollHeight <= 215) toggleBtn.style.display = "none";
+    toggleBtn.addEventListener("click", function(){ expanded = !expanded; applyState(); });
   })();
 
   document.getElementById("ddq-explo-convert").addEventListener("click", function(){
