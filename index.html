@@ -463,7 +463,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.9.2-firebase";
+var APP_VERSION = "2.10.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -2136,7 +2136,7 @@ function renderExploSectors(){
 
   var html = explo.sectors.map(function(s, idx){
     var style = THEME_PALETTE[idx % THEME_PALETTE.length];
-    var allSorted = s.companies.slice().sort(function(a,b){ return (a.priority||9) - (b.priority||9); });
+    var allSorted = s.companies.slice();
     var filtered = allSorted;
     if (exploStageFilter !== "all") filtered = filtered.filter(function(c){ return c.stage === exploStageFilter; });
     if (exploPriorityFilter !== "all") filtered = filtered.filter(function(c){ return String(c.priority) === exploPriorityFilter; });
@@ -2159,7 +2159,7 @@ function renderExploSectors(){
       var regionColor = isDead ? "#B0B5BC" : "#5B6472";
       var stageLabelColor = isDead ? "#9AA2AF" : stStyle.c;
       var dealBadge = c.status === "deal" ? '<span style="font-size:9.5px;font-weight:600;color:#1F7A4D;background:#E3F5EA;border-radius:5px;padding:1px 6px;flex-shrink:0;">Deal</span>' : "";
-      return '<div data-company="'+c.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid '+rowBorder+';background:'+rowBg+';border-radius:7px;padding:6px 9px;margin-bottom:5px;display:flex;align-items:center;gap:7px;">' +
+      return '<div data-company="'+c.id+'" data-sector="'+s.id+'" draggable="true" class="ddq-qrow" style="cursor:grab;border:1px solid '+rowBorder+';background:'+rowBg+';border-radius:7px;padding:6px 9px;margin-bottom:5px;display:flex;align-items:center;gap:7px;">' +
         '<span title="Priorité '+c.priority+'" style="width:8px;height:8px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
         '<span style="font-size:12px;font-weight:600;color:'+nameColor+';flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.name)+'</span>' +
         (c.region ? '<span style="font-size:9.5px;color:'+regionColor+';flex-shrink:0;">'+esc(c.region)+'</span>' : '') +
@@ -2199,6 +2199,7 @@ function renderExploSectors(){
       currentExploCompanyId = el.getAttribute("data-company");
       showView("explo-company");
     });
+    wireExploRowDrag(el, el.getAttribute("data-sector"));
   });
   Array.prototype.forEach.call(container.querySelectorAll("[data-sector-toggle]"), function(btn){
     btn.addEventListener("click", function(){
@@ -2214,6 +2215,61 @@ function renderExploSectors(){
     });
   });
   document.getElementById("ddq-explo-sector-add").addEventListener("click", addNewExploSector);
+}
+
+function reorderExploCompanies(sectorId, orderedIds){
+  var sector = findExploSector(sectorId);
+  if (!sector) return;
+  var reorderedSet = {};
+  var reordered = orderedIds.map(function(id){
+    var c = sector.companies.filter(function(x){ return x.id===id; })[0];
+    if (c) reorderedSet[id] = true;
+    return c;
+  }).filter(Boolean);
+  var rest = sector.companies.filter(function(c){ return !reorderedSet[c.id]; });
+  sector.companies = reordered.concat(rest);
+  persistExplo();
+}
+
+function wireExploRowDrag(rowEl, sectorId){
+  rowEl.addEventListener("dragstart", function(e){
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", rowEl.getAttribute("data-company"));
+    setTimeout(function(){ rowEl.classList.add("ddq-dragging"); }, 0);
+  });
+  rowEl.addEventListener("dragend", function(){
+    rowEl.classList.remove("ddq-dragging");
+    Array.prototype.forEach.call(document.querySelectorAll(".ddq-drop-before, .ddq-drop-after"), function(el){
+      el.classList.remove("ddq-drop-before", "ddq-drop-after");
+    });
+  });
+  rowEl.addEventListener("dragover", function(e){
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    var rect = rowEl.getBoundingClientRect();
+    var after = (e.clientY - rect.top) > rect.height/2;
+    rowEl.classList.toggle("ddq-drop-before", !after);
+    rowEl.classList.toggle("ddq-drop-after", after);
+  });
+  rowEl.addEventListener("dragleave", function(){
+    rowEl.classList.remove("ddq-drop-before", "ddq-drop-after");
+  });
+  rowEl.addEventListener("drop", function(e){
+    e.preventDefault();
+    rowEl.classList.remove("ddq-drop-before", "ddq-drop-after");
+    var draggedId = e.dataTransfer.getData("text/plain");
+    var targetId = rowEl.getAttribute("data-company");
+    if (!draggedId || draggedId === targetId) return;
+    var draggedEl = document.querySelector('.ddq-qrow[data-company="'+draggedId+'"][data-sector="'+sectorId+'"]');
+    var list = rowEl.parentElement;
+    if (!draggedEl || !list) return;
+    var rect = rowEl.getBoundingClientRect();
+    var after = (e.clientY - rect.top) > rect.height/2;
+    if (after) list.insertBefore(draggedEl, rowEl.nextSibling);
+    else list.insertBefore(draggedEl, rowEl);
+    var ids = Array.prototype.map.call(list.querySelectorAll('.ddq-qrow[data-sector="'+sectorId+'"]'), function(r){ return r.getAttribute("data-company"); });
+    reorderExploCompanies(sectorId, ids);
+  });
 }
 
 function addNewExploSector(){
@@ -2408,7 +2464,14 @@ function renderExploCompany(){
           '<div style="font-size:16px;font-weight:600;color:#142850;">'+esc(c.name)+'</div>' +
           '<div style="font-size:11.5px;color:#5B6472;">'+esc(sector.name)+'</div>' +
         '</div>' +
-        '<div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">' +
+        '<div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;align-items:center;">' +
+          (c.dealId ? '<button id="ddq-explo-open-deal" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;white-space:nowrap;background:#fff;color:#142850;border:1px solid #E2E5EA;">Espace de suivi</button>' : '') +
+          '<button id="ddq-explo-convert" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;white-space:nowrap;background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';">' +
+            (isDeal ? "Retirer du deal" : "Convertir") +
+          '</button>' +
+          '<button id="ddq-explo-doc-add-icon" type="button" title="Ajouter un document" style="width:28px;height:28px;border-radius:6px;background:#142850;color:#fff;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>' +
+          '</button>' +
           '<select id="ddq-explo-f-stage" style="font-size:11px;font-weight:600;color:'+stStyle.c+';background:'+stStyle.bg+';border:none;border-radius:6px;padding:5px 8px;">' +
             EXPLO_STAGES.map(function(s){ return '<option value="'+s+'" '+(s===c.stage?"selected":"")+'>'+exploStageStyle(s).label+'</option>'; }).join("") +
           '</select>' +
@@ -2438,15 +2501,8 @@ function renderExploCompany(){
       '</div>' +
 
       '<label style="'+lblStyle+'">Description / qualification</label>' +
-      '<textarea id="ddq-explo-f-comment" rows="1" style="'+inputStyle+'resize:vertical;max-height:210px;overflow-y:auto;margin-bottom:3px;">'+esc(c.comment||"")+'</textarea>' +
-      '<button type="button" id="ddq-explo-desc-toggle" style="border:none;background:none;color:#2E5395;font-size:11px;font-weight:600;margin-bottom:12px;">Déplier ↓</button>' +
-
-      '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">' +
-        (c.dealId ? '<button id="ddq-explo-open-deal" style="background:#fff;color:#142850;border:1px solid #E2E5EA;border-radius:8px;padding:7px 16px;font-weight:600;font-size:12px;">Ouvrir l\'espace de suivi</button>' : '') +
-        '<button id="ddq-explo-convert" style="background:'+(isDeal?'#fff':'#142850')+';color:'+(isDeal?'#A32D2D':'#fff')+';border:1px solid '+(isDeal?'#F0C9C9':'#142850')+';border-radius:8px;padding:7px 16px;font-weight:600;font-size:12px;">' +
-          (isDeal ? "Retirer de « Deals en cours »" : "Convertir en « Deals en cours »") +
-        '</button>' +
-      '</div>' +
+      '<textarea id="ddq-explo-f-comment" rows="10" style="'+inputStyle+'resize:vertical;overflow-y:auto;margin-bottom:3px;">'+esc(c.comment||"")+'</textarea>' +
+      '<button type="button" id="ddq-explo-desc-toggle" style="border:none;background:none;color:#2E5395;font-size:11px;font-weight:600;display:none;">Déplier ↓</button>' +
     '</div>' +
 
     '<div style="display:flex;gap:18px;border-bottom:1px solid #E2E5EA;margin-bottom:14px;">' +
@@ -2460,11 +2516,6 @@ function renderExploCompany(){
     '</div>' +
 
     '<div id="ddq-ec-tab-documents" style="display:none;">' +
-      '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">' +
-        '<button id="ddq-explo-doc-add-icon" title="Ajouter un document" style="width:32px;height:32px;border-radius:8px;background:#142850;color:#fff;border:none;display:flex;align-items:center;justify-content:center;">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>' +
-        '</button>' +
-      '</div>' +
       '<div id="ddq-explo-att-list">' + attRows + '</div>' +
     '</div>';
 
@@ -2520,13 +2571,13 @@ function renderExploCompany(){
     var ta = document.getElementById("ddq-explo-f-comment");
     var toggleBtn = document.getElementById("ddq-explo-desc-toggle");
     if (!ta || !toggleBtn) return;
+    var collapsedHeight = ta.clientHeight;
     var expanded = false;
     function applyState(){
-      ta.style.maxHeight = expanded ? "none" : "210px";
-      toggleBtn.textContent = expanded ? "Replier ↑" : "Déplier ↓";
+      if (expanded) { ta.style.height = ta.scrollHeight + "px"; toggleBtn.textContent = "Replier ↑"; }
+      else { ta.style.height = collapsedHeight + "px"; toggleBtn.textContent = "Déplier ↓"; }
     }
-    applyState();
-    if (ta.scrollHeight <= 215) toggleBtn.style.display = "none";
+    if (ta.scrollHeight > ta.clientHeight + 4) toggleBtn.style.display = "inline";
     toggleBtn.addEventListener("click", function(){ expanded = !expanded; applyState(); });
   })();
 
