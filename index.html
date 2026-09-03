@@ -467,7 +467,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.11.0-firebase";
+var APP_VERSION = "2.11.1-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -881,6 +881,25 @@ function loadCurrentUserFromStorage(){
   try { id = localStorage.getItem(CURRENT_USER_KEY); } catch(e){}
   if (!id) return null;
   return findUserById(id);
+}
+
+var SEEN_NOTIFICATIONS_KEY = "wood-box-seen-notifications";
+
+function getSeenNotificationIds(){
+  if (!currentUser) return {};
+  try {
+    var all = JSON.parse(localStorage.getItem(SEEN_NOTIFICATIONS_KEY) || "{}");
+    return all[currentUser.id] || {};
+  } catch(e){ return {}; }
+}
+function markNotificationSeen(noteId){
+  if (!currentUser || !noteId) return;
+  try {
+    var all = JSON.parse(localStorage.getItem(SEEN_NOTIFICATIONS_KEY) || "{}");
+    all[currentUser.id] = all[currentUser.id] || {};
+    all[currentUser.id][noteId] = true;
+    localStorage.setItem(SEEN_NOTIFICATIONS_KEY, JSON.stringify(all));
+  } catch(e){}
 }
 
 // =====================================================================================
@@ -1664,7 +1683,7 @@ function collectDealActivity(dealId, dealLike, dealLabel){
     }
     (q.notes||[]).forEach(function(n){
       events.push({ ts:n.timestamp, kind:"note", source:"deals", dealLabel:dealLabel, title:q.text, meta:(n.author||"Anonyme")+" · "+t.label,
-        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html,
+        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html, noteId:n.id,
         onClick: function(){ goToQuestionFromFeed(dealId, q.id); } });
     });
     (q.statusHistory||[]).forEach(function(h, i){
@@ -1683,7 +1702,7 @@ function collectExploActivity(){
     var sectorLabel = found ? found.sector.name : "";
     (c.notes||[]).forEach(function(n){
       events.push({ ts:n.timestamp, kind:"note", source:"exploration", dealLabel:"Exploration", title:c.name, meta:(n.author||"Anonyme")+" · "+sectorLabel,
-        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html,
+        mentions:n.mentions||[], noteAuthor:n.author, noteText:n.text, noteHtml:n.html, noteId:n.id,
         onClick: function(){ goToExploCompanyFromFeed(c.id); } });
     });
     (c.attachments||[]).forEach(function(a){
@@ -1851,9 +1870,11 @@ function renderHomeNotifications(){
   var badge = document.getElementById("ddq-notif-badge");
   if (!el) return;
   var mentions = collectMentionsForCurrentUser();
+  var seen = getSeenNotificationIds();
+  var unseenCount = mentions.filter(function(m){ return !seen[m.noteId]; }).length;
 
   if (badge) {
-    if (mentions.length) { badge.style.display = "inline"; badge.textContent = mentions.length; }
+    if (unseenCount) { badge.style.display = "inline"; badge.textContent = unseenCount; }
     else { badge.style.display = "none"; }
   }
 
@@ -1874,8 +1895,12 @@ function renderHomeNotifications(){
       html += '<div style="font-size:11px;font-weight:600;color:#9AA2AF;text-transform:uppercase;letter-spacing:.03em;margin:' + (lastDay ? '16px' : '0') + ' 0 8px;">' + day + '</div>';
       lastDay = day;
     }
-    html += '<div class="ddq-notif-row" data-notif-idx="'+i+'" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:10px 12px;margin-bottom:6px;">' +
-      '<div style="font-size:11px;color:#9AA2AF;margin-bottom:3px;"><strong style="color:'+authorColor(e.noteAuthor)+';">'+esc(e.noteAuthor||"Anonyme")+'</strong> vous a mentionné · '+esc(e.dealLabel)+' · '+fmtDate(e.ts)+'</div>' +
+    var isUnseen = !seen[e.noteId];
+    html += '<div class="ddq-notif-row" data-notif-idx="'+i+'" style="cursor:pointer;border:1px solid '+(isUnseen?'#F0C9C9':'#E2E5EA')+';background:'+(isUnseen?'#FFFBFB':'#fff')+';border-radius:8px;padding:10px 12px;margin-bottom:6px;">' +
+      '<div style="font-size:11px;color:#9AA2AF;margin-bottom:3px;display:flex;align-items:center;gap:6px;">' +
+        (isUnseen ? '<span style="width:7px;height:7px;border-radius:50%;background:#A32D2D;flex-shrink:0;"></span>' : '') +
+        '<strong style="color:'+authorColor(e.noteAuthor)+';">'+esc(e.noteAuthor||"Anonyme")+'</strong> vous a mentionné · '+esc(e.dealLabel)+' · '+fmtDate(e.ts) +
+      '</div>' +
       '<div style="font-size:12.5px;color:#5B6472;margin-bottom:4px;">'+esc(e.title)+'</div>' +
       '<div style="font-size:13px;color:#1A1F2B;">'+renderNoteBody({html:e.noteHtml, text:e.noteText})+'</div>' +
     '</div>';
@@ -1883,7 +1908,10 @@ function renderHomeNotifications(){
   el.innerHTML = html;
   Array.prototype.forEach.call(el.querySelectorAll(".ddq-notif-row"), function(rowEl){
     var idx = parseInt(rowEl.getAttribute("data-notif-idx"), 10);
-    rowEl.addEventListener("click", mentions[idx].onClick);
+    rowEl.addEventListener("click", function(){
+      markNotificationSeen(mentions[idx].noteId);
+      mentions[idx].onClick();
+    });
   });
 }
 
@@ -2582,8 +2610,9 @@ function renderExploCompany(){
     '</div>' +
 
     '<div id="ddq-ec-tab-notes">' +
-      '<div id="ddq-explo-notes-list">'+notesHtml+'</div>' +
       noteComposerHtml("ddq-explo-note-text", "ddq-explo-note-add", "ddq-explo-note-chips") +
+      '<div style="border-top:1px solid #E2E5EA;margin:4px 0 14px;"></div>' +
+      '<div id="ddq-explo-notes-list">'+notesHtml+'</div>' +
     '</div>' +
 
     '<div id="ddq-ec-tab-documents" style="display:none;">' +
