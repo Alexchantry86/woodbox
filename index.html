@@ -261,9 +261,8 @@
         </div>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #F0F1F3;">
-        <span style="font-size:11px;color:#5B6472;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#5B6472;margin-right:5px;vertical-align:-1px;"></span>Ouverte</span>
-        <span style="font-size:11px;color:#5B6472;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#2E5395;margin-right:5px;vertical-align:-1px;"></span>En cours</span>
-        <span style="font-size:11px;color:#5B6472;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#8A5A1F;margin-right:5px;vertical-align:-1px;"></span>Répondue</span>
+        <span style="font-size:11px;color:#5B6472;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#5B6472;margin-right:5px;vertical-align:-1px;"></span>À instruire</span>
+        <span style="font-size:11px;color:#C2410C;font-weight:700;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#C2410C;margin-right:5px;vertical-align:-1px;"></span>En cours</span>
         <span style="font-size:11px;color:#5B6472;"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#1F7A4D;margin-right:5px;vertical-align:-1px;"></span>Clôturée</span>
       </div>
     </div>
@@ -336,9 +335,18 @@ var DEFAULT_THEMES = [
 var EXPLO_SEED = [{"id": "s2", "name": "Négoce Produits d’emballages techniques", "code": "NP", "companies": [{"id": "s2-1", "name": "STAR PACK", "region": null, "priority": 2, "comment": null, "contact": null}]}, {"id": "s3", "name": "Découpe & usinage de mousse", "code": "DU", "companies": [{"id": "s3-1", "name": "AMC INDUSTRIE", "region": null, "priority": 1, "comment": "Contacter le gérant", "contact": null}, {"id": "s3-2", "name": "JP MOUSSE", "region": null, "priority": 3, "comment": "Trop loin", "contact": null}, {"id": "s3-3", "name": "MOREL MOUSSE", "region": null, "priority": 2, "comment": null, "contact": null}, {"id": "s3-4", "name": "CELLULTEC", "region": null, "priority": 3, "comment": "trop loin", "contact": null}, {"id": "s3-5", "name": "WEEPACKUP", "region": null, "priority": 1, "comment": null, "contact": null}]}, {"id": "s4", "name": "Fabrication de bâches sur mesure", "code": "FB", "companies": [{"id": "s4-1", "name": "NORD BÂCHES", "region": null, "priority": 3, "comment": "Dead / transactions en 2025", "contact": null}, {"id": "s4-2", "name": "DURAND FABRICATION", "region": null, "priority": 2, "comment": null, "contact": null}, {"id": "s4-3", "name": "BACHE PLUS", "region": null, "priority": 2, "comment": null, "contact": null}]}, {"id": "s5", "name": "Fabrication & découpe de films pour l'industrie", "code": "FD", "companies": [{"id": "s5-1", "name": "COFILM", "region": null, "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": "MARECHAL", "prenom": "Sylvie", "age": "51", "email": "contact@cofilm.fr", "tel": "03 44 41 69 34", "site": "cofilm.net", "note": null}}, {"id": "s5-2", "name": "VALSEM", "region": null, "priority": 2, "comment": null, "contact": null}]}, {"id": "s6", "name": "Négoce de films techniques", "code": "NF", "companies": [{"id": "s6-1", "name": "ITEC MATERIALS", "region": null, "priority": 2, "comment": null, "contact": null}]}, {"id": "s8", "name": "Emballages carton sur-mesure & spécifiques", "code": "EC", "companies": [{"id": "s8-1", "name": "LAUWERS", "region": null, "priority": 1, "comment": null, "contact": {"nom": "BEARA", "prenom": "Antoine", "age": "48", "email": "antoine.bera@lauwers-emb.com", "tel": "06 72 10 17 17", "site": "lauwers-emballages.fr", "note": null}}, {"id": "s8-2", "name": "Sofrapack", "region": null, "priority": 1, "comment": null, "contact": {"nom": "ROCHMAN", "prenom": "Guillaume", "age": null, "email": "grochman@sofrapack.com", "tel": null, "site": "sofrapack.com", "note": null}}, {"id": "s8-3", "name": "AJM Emballage", "region": null, "priority": 3, "comment": null, "contact": null}]}, {"id": "s10", "name": "Fabricants de caisses techniques", "code": "FC", "companies": [{"id": "s10-1", "name": "E3-CORTEX", "region": null, "priority": 1, "comment": "Contacter le gérant", "contact": null}, {"id": "s10-2", "name": "GROUPE FLEURET", "region": null, "priority": 3, "comment": null, "contact": null}, {"id": "s10-3", "name": "BRC", "region": null, "priority": 3, "comment": "racheté par Groupe Fleuret", "contact": null}, {"id": "s10-4", "name": "Objectifs emballage", "region": null, "priority": 3, "comment": "racheté par Groupe Fleuret", "contact": null}, {"id": "s10-5", "name": "HIRSCHFELD Emballage", "region": null, "priority": 2, "comment": null, "contact": null}]}, {"id": "s11", "name": "Fabricants de Flight Case", "code": "FF", "companies": [{"id": "s11-1", "name": "CONEX", "region": null, "priority": 3, "comment": "Dead / transactions en 2025", "contact": null}, {"id": "s11-2", "name": "LGI Flight case", "region": null, "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": "NGUYEN DINH CAT", "prenom": "Luc", "age": null, "email": null, "tel": null, "site": "flight-case-lgi.fr", "note": null}}, {"id": "s11-3", "name": "JP EMBALL", "region": null, "priority": 1, "comment": "Contacter le gérant ( 74 ans, ds le 45 St Ay) Fils Jean Philippe Dir Com - Diversification ratée ?", "contact": {"nom": "BAILLY", "prenom": "Jean-Paul", "age": null, "email": null, "tel": null, "site": "https://www.jpemball.fr", "note": null}}, {"id": "s11-4", "name": "FACDEM ÉQUIPEMENTS", "region": null, "priority": 1, "comment": "à creuser", "contact": {"nom": "DELESALLE", "prenom": "Thierry", "age": null, "email": null, "tel": null, "site": "facdemequipements.fr", "note": null}}, {"id": "s11-5", "name": "EURE FLIGHT CASE", "region": null, "priority": 2, "comment": null, "contact": null}, {"id": "s11-6", "name": "ATELIER 33", "region": null, "priority": 2, "comment": "à Mitry dans le 77", "contact": null}]}, {"id": "s12", "name": "Emballages bois sur-mesure", "code": "EB", "companies": [{"id": "s12-2", "name": "CAISSERIE MENUISIER FAY", "region": "NORD EST", "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": "JUPIN", "prenom": "François", "age": null, "email": "francois.jupin@caisserie-menuiserie-fay.fr", "tel": "06 75 92 61 39", "site": "caisserie-menuiserie-fay.fr", "note": null}}, {"id": "s12-3", "name": "CBM", "region": "NORD EST", "priority": 2, "comment": null, "contact": null}, {"id": "s12-4", "name": "GACEC", "region": "LOIRE", "priority": 3, "comment": "Dead / trop petit & artisanal", "contact": null}, {"id": "s12-5", "name": "SIMEP", "region": "NORD EST", "priority": 2, "comment": "a été repris managérialement par armand Courcelle", "contact": null}, {"id": "s12-6", "name": "BOQUET SA", "region": "IDF", "priority": 2, "comment": "trop proche géographiquement de LEGAA", "contact": null}, {"id": "s12-7", "name": "SNUB", "region": "NORMANDIE", "priority": 2, "comment": "Valider la part de l'industrie vs. ossature bois", "contact": null}, {"id": "s12-8", "name": "AMT EMBALLAGE", "region": "IDF", "priority": 3, "comment": "trop proche de legaa", "contact": null}, {"id": "s12-9", "name": "EXPORTPACK", "region": "BELGIQUE", "priority": 1, "comment": "Acteur belge à la frontière", "contact": {"nom": null, "prenom": null, "age": null, "email": null, "tel": null, "site": "https://exportpack.be/", "note": null}}, {"id": "s12-10", "name": "DIALOG", "region": "NORMANDIE", "priority": 2, "comment": "Contacter le gérant", "contact": null}, {"id": "s12-11", "name": "GRIMBERT", "region": "LOIRE", "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": "GUYARD (née GRIMBERT)", "prenom": "Eugénie", "age": null, "email": "grimbert-emballages@wanadoo.fr", "tel": "02 33 66 71 71", "site": "https://www.grimbert-emballages.fr/", "note": null}}, {"id": "s12-12", "name": "VALOGNE SA", "region": "IDF", "priority": 2, "comment": "250K de résultat net", "contact": null}, {"id": "s12-13", "name": "ROISSY EMBALLAGE", "region": "IDF", "priority": 3, "comment": "250K de résultat net", "contact": null}, {"id": "s12-14", "name": "BOIS LEJEUNE", "region": "BELGIQUE", "priority": 2, "comment": null, "contact": null}, {"id": "s12-15", "name": "FIDEC", "region": "IDF", "priority": 2, "comment": "ici", "contact": null}, {"id": "s12-16", "name": "CHAMPAGNE ARDENNES CAISSE", "region": "NORD EST", "priority": 1, "comment": null, "contact": null}]}, {"id": "s13", "name": "Caissier Oeuvre d'art", "code": "CO", "companies": [{"id": "s13-1", "name": "CORNU 1887", "region": "IDF", "priority": 2, "comment": "Contacter le gérant / approche directe par Alexandre", "contact": {"nom": "BEGUIN", "prenom": "Benoît", "age": "55", "email": "bbeguin@cornu1887.com", "tel": "06 31 68 10 41", "site": "cornu1887.com", "note": "Approche directe par Alexandre\neu son téléphone par son cousin"}}, {"id": "s13-2", "name": "L.E.C EMBALLAGES", "region": "IDF", "priority": 2, "comment": null, "contact": null}, {"id": "s13-3", "name": "TRANSEXPO", "region": "IDF", "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": "BOVIS", "prenom": "Pascal", "age": null, "email": null, "tel": null, "site": "https://www.transexpo.fr", "note": null}}, {"id": "s13-4", "name": "LP ART", "region": "IDF", "priority": 2, "comment": null, "contact": null}, {"id": "s13-5", "name": "GROUPE ESI", "region": "IDF", "priority": 3, "comment": null, "contact": null}, {"id": "s13-6", "name": "VULCAN FINE ART", "region": "IDF", "priority": 1, "comment": "Contacter le gérant", "contact": null}, {"id": "s13-7", "name": "BOVIS FINE ART", "region": "IDF", "priority": 3, "comment": "Fait partie d'un groupe intégré", "contact": null}, {"id": "s13-8", "name": "CONVELIO", "region": "IDF", "priority": 3, "comment": null, "contact": null}, {"id": "s13-9", "name": "GROUPE CHENUE", "region": "IDF", "priority": 2, "comment": "TROP GROS", "contact": null}, {"id": "s13-10", "name": "Transport Marché", "region": "IDF", "priority": 1, "comment": "Contacter le gérant", "contact": {"nom": null, "prenom": null, "age": null, "email": null, "tel": null, "site": "https://www.transport-marche.fr", "note": null}}, {"id": "s13-11", "name": "FRAGILE.ART", "region": "IDF", "priority": 2, "comment": "semble trop petit", "contact": null}, {"id": "s13-12", "name": "Mobull", "region": "BELGIQUE", "priority": 2, "comment": "acteur belge", "contact": null}, {"id": "s13-13", "name": "Embelco", "region": "BELGIQUE", "priority": 2, "comment": "acteur belge", "contact": null}, {"id": "s13-14", "name": "Pack-it", "region": "BELGIQUE", "priority": 2, "comment": "acteur belge", "contact": null}]}, {"id": "s99", "name": "AUTRES", "code": "AU", "companies": [{"id": "s99-1", "name": "GROUPE VALOIS", "region": null, "priority": 2, "comment": "Contacter le gérant", "contact": null}, {"id": "s99-2", "name": "SOFRIGRAM", "region": null, "priority": 2, "comment": "Contacter le gérant", "contact": null}]}];
 
 var PRIORITIES = ["Haute","Moyenne","Basse"];
-var STATUTS = ["Ouverte","En cours","Répondue","Clôturée"];
-var STATUT_COLOR = { "Ouverte":"#5B6472", "En cours":"#2E5395", "Répondue":"#8A5A1F", "Clôturée":"#1F7A4D" };
-var STATUT_BG = { "Ouverte":"#EEF0F3", "En cours":"#E6ECF7", "Répondue":"#FBF2DF", "Clôturée":"#E3F5EA" };
+var STATUTS = ["À instruire","En cours","Clôturée"];
+var STATUT_COLOR = { "À instruire":"#5B6472", "En cours":"#C2410C", "Clôturée":"#1F7A4D" };
+var STATUT_BG = { "À instruire":"#EEF0F3", "En cours":"#FFEDD5", "Clôturée":"#E3F5EA" };
+
+// Anciens statuts ("Ouverte"/"Répondue") ramenés à la nouvelle taxonomie à 3 valeurs,
+// pour que les données existantes restent affichables sans migration manuelle.
+function migrateStatut(s){
+  if (s === "Ouverte") return "À instruire";
+  if (s === "Répondue") return "En cours";
+  if (STATUTS.indexOf(s) !== -1) return s;
+  return "À instruire";
+}
 
 var PRIO_STYLE = {
   "Haute":   { c:"#DC2626", bg:"#FEE2E2" },
@@ -402,64 +410,64 @@ function seedQuestions(){
              messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut: statut, timestamp: now}] };
   }
   return [
-    q("deal","Calendrier prévisionnel de l'opération : dates cibles de signing et de closing, avec quelles conditions suspensives ?","Haute","Directeur M&A","Ouverte"),
-    q("deal","Existe-t-il une lettre d'intention / accord d'exclusivité signé avec le cédant ? Durée et date d'échéance ?","Haute","Directeur M&A","Ouverte"),
-    q("deal","Qui pilote la négociation du SPA (Sale and Purchase Agreement) côté acquéreur et côté cédant/conseils ?","Moyenne","Directeur M&A","Ouverte"),
-    q("deal","Quelles conditions suspensives envisager (financement, autorisations, absence de changement significatif défavorable) ?","Haute","Directeur M&A","Ouverte"),
-    q("deal","Modalités de garantie de passif à négocier : durée, plafond, franchise, séquestre (escrow) ?","Haute","Directeur M&A","Ouverte"),
+    q("deal","Calendrier prévisionnel de l'opération : dates cibles de signing et de closing, avec quelles conditions suspensives ?","Haute","Directeur M&A","À instruire"),
+    q("deal","Existe-t-il une lettre d'intention / accord d'exclusivité signé avec le cédant ? Durée et date d'échéance ?","Haute","Directeur M&A","À instruire"),
+    q("deal","Qui pilote la négociation du SPA (Sale and Purchase Agreement) côté acquéreur et côté cédant/conseils ?","Moyenne","Directeur M&A","À instruire"),
+    q("deal","Quelles conditions suspensives envisager (financement, autorisations, absence de changement significatif défavorable) ?","Haute","Directeur M&A","À instruire"),
+    q("deal","Modalités de garantie de passif à négocier : durée, plafond, franchise, séquestre (escrow) ?","Haute","Directeur M&A","À instruire"),
     q("deal","Séquencement de la Due Diligence par thématique : dates limites, comité de pilotage prévu ?","Moyenne","Directeur M&A","En cours"),
-    q("deal","Plan de communication interne/externe autour de l'annonce (salariés, clients, fournisseurs) : qui, quand, quel message ?","Moyenne","Directeur Commercial Groupe","Ouverte"),
+    q("deal","Plan de communication interne/externe autour de l'annonce (salariés, clients, fournisseurs) : qui, quand, quel message ?","Moyenne","Directeur Commercial Groupe","À instruire"),
 
-    q("org","Quelle organisation cible pour Pruvot au sein du groupe (rattachement, gouvernance, reporting) ?","Haute","Directeur M&A","Ouverte"),
-    q("org","Le dirigeant actuel (M. Pruvot) reste-t-il aux commandes de l'opérationnel ? Sous quelle forme et pour quelle durée ?","Haute","Directeur M&A","Ouverte"),
-    q("org","Quel plan d'intégration RH / IT / Achats sur les 100 premiers jours post-closing ?","Haute","DRH Groupe","Ouverte"),
-    q("org","Comment seront pilotées et suivies dans le temps les synergies identifiées (achats, commercial, structure) ?","Haute","Directeur Financier Groupe","Ouverte"),
-    q("org","Faut-il un comité de pilotage dédié à l'intégration (COMEX Pruvot + Groupe) ? Quelle fréquence ?","Moyenne","Directeur M&A","Ouverte"),
-    q("org","Existe-t-il des doublons de fonctions à anticiper (comptabilité, RH, paie) entre Pruvot et le siège Groupe ?","Moyenne","DRH Groupe","Ouverte"),
+    q("org","Quelle organisation cible pour Pruvot au sein du groupe (rattachement, gouvernance, reporting) ?","Haute","Directeur M&A","À instruire"),
+    q("org","Le dirigeant actuel (M. Pruvot) reste-t-il aux commandes de l'opérationnel ? Sous quelle forme et pour quelle durée ?","Haute","Directeur M&A","À instruire"),
+    q("org","Quel plan d'intégration RH / IT / Achats sur les 100 premiers jours post-closing ?","Haute","DRH Groupe","À instruire"),
+    q("org","Comment seront pilotées et suivies dans le temps les synergies identifiées (achats, commercial, structure) ?","Haute","Directeur Financier Groupe","À instruire"),
+    q("org","Faut-il un comité de pilotage dédié à l'intégration (COMEX Pruvot + Groupe) ? Quelle fréquence ?","Moyenne","Directeur M&A","À instruire"),
+    q("org","Existe-t-il des doublons de fonctions à anticiper (comptabilité, RH, paie) entre Pruvot et le siège Groupe ?","Moyenne","DRH Groupe","À instruire"),
 
-    q("rh","Confirmer le détail des engagements de retraite (42 K€) et la couverture IFC (21 K€ provisionnés) : méthode actuarielle utilisée ?","Haute","DRH Groupe","Ouverte"),
-    q("rh","Obtenir le détail individuel des 16 contrats de travail (ancienneté, rémunération, clauses spécifiques)","Haute","DRH Groupe","Ouverte"),
-    q("rh","Convention collective Bois et Scieries : accords d'entreprise, avantages conventionnels, écarts vs. grille groupe","Moyenne","DRH Groupe","Ouverte"),
+    q("rh","Confirmer le détail des engagements de retraite (42 K€) et la couverture IFC (21 K€ provisionnés) : méthode actuarielle utilisée ?","Haute","DRH Groupe","À instruire"),
+    q("rh","Obtenir le détail individuel des 16 contrats de travail (ancienneté, rémunération, clauses spécifiques)","Haute","DRH Groupe","À instruire"),
+    q("rh","Convention collective Bois et Scieries : accords d'entreprise, avantages conventionnels, écarts vs. grille groupe","Moyenne","DRH Groupe","À instruire"),
     q("rh","Le contrat du dirigeant prévoit-il un accompagnement transitoire post-cession ? Durée, conditions ?","Haute","Directeur M&A","En cours"),
-    q("rh","Historique des accidents du travail / maladies professionnelles sur 3 ans, et statut du DUERP","Moyenne","DRH Groupe","Ouverte"),
-    q("rh","Turn-over et pyramide des âges (5 salariés > 55 ans) : plan de succession sur les postes clés ?","Haute","DRH Groupe","Ouverte"),
+    q("rh","Historique des accidents du travail / maladies professionnelles sur 3 ans, et statut du DUERP","Moyenne","DRH Groupe","À instruire"),
+    q("rh","Turn-over et pyramide des âges (5 salariés > 55 ans) : plan de succession sur les postes clés ?","Haute","DRH Groupe","À instruire"),
 
-    q("bat","Copie du bail avec la SCI TCLN 43 : durée résiduelle, indexation, clause de sortie en cas de changement de contrôle","Haute","Directeur M&A","Ouverte"),
-    q("bat","État des lieux technique du site (27 000 m², 6 500 m² bâtis) : diagnostics amiante/plomb, conformité ICPE","Haute","Directeur Industriel","Ouverte"),
-    q("bat","Travaux de mise aux normes ou de gros entretien à prévoir à court terme (toiture, aspiration) ?","Moyenne","Directeur Industriel","Ouverte"),
-    q("bat","Confirmer l'absence de servitudes, hypothèques ou contentieux sur le foncier de la SCI","Moyenne","Directeur M&A","Ouverte"),
+    q("bat","Copie du bail avec la SCI TCLN 43 : durée résiduelle, indexation, clause de sortie en cas de changement de contrôle","Haute","Directeur M&A","À instruire"),
+    q("bat","État des lieux technique du site (27 000 m², 6 500 m² bâtis) : diagnostics amiante/plomb, conformité ICPE","Haute","Directeur Industriel","À instruire"),
+    q("bat","Travaux de mise aux normes ou de gros entretien à prévoir à court terme (toiture, aspiration) ?","Moyenne","Directeur Industriel","À instruire"),
+    q("bat","Confirmer l'absence de servitudes, hypothèques ou contentieux sur le foncier de la SCI","Moyenne","Directeur M&A","À instruire"),
 
-    q("com","Contrats-cadres des 3 premiers clients (35% du CA 2025) : durée, clauses de révision de prix, exclusivité","Haute","Directeur Commercial Groupe","Ouverte"),
-    q("com","Risque de perte d'un client majeur lors du changement de contrôle (clause de changement de contrôle) ?","Haute","Directeur Commercial Groupe","Ouverte"),
-    q("com","Pipeline commercial en cours et devis en attente non reflétés dans le CA 2025","Moyenne","Directeur Commercial Groupe","Ouverte"),
-    q("com","Analyse de la baisse de CA 2024 (-18% vs 2023) : facteurs conjoncturels ou structurels ?","Haute","Directeur M&A","Répondue"),
+    q("com","Contrats-cadres des 3 premiers clients (35% du CA 2025) : durée, clauses de révision de prix, exclusivité","Haute","Directeur Commercial Groupe","À instruire"),
+    q("com","Risque de perte d'un client majeur lors du changement de contrôle (clause de changement de contrôle) ?","Haute","Directeur Commercial Groupe","À instruire"),
+    q("com","Pipeline commercial en cours et devis en attente non reflétés dans le CA 2025","Moyenne","Directeur Commercial Groupe","À instruire"),
+    q("com","Analyse de la baisse de CA 2024 (-18% vs 2023) : facteurs conjoncturels ou structurels ?","Haute","Directeur M&A","En cours"),
 
-    q("fin","Nature précise de la dette financière 2025 (373 K€, en forte hausse) : objet, garanties, covenants, échéancier","Haute","Directeur Financier Groupe","Ouverte"),
-    q("fin","Cautions personnelles du dirigeant ou sûretés sur les actifs à lever au closing ?","Haute","Directeur Financier Groupe","Ouverte"),
-    q("fin","Détail des comptes courants d'associés (188 K€) : conditions de remboursement, taux, échéance","Moyenne","Directeur Financier Groupe","Ouverte"),
-    q("fin","Confirmer l'absence d'engagements hors bilan (garanties, litiges provisionnés, crédit-bail non capitalisé)","Haute","Directeur Financier Groupe","Ouverte"),
+    q("fin","Nature précise de la dette financière 2025 (373 K€, en forte hausse) : objet, garanties, covenants, échéancier","Haute","Directeur Financier Groupe","À instruire"),
+    q("fin","Cautions personnelles du dirigeant ou sûretés sur les actifs à lever au closing ?","Haute","Directeur Financier Groupe","À instruire"),
+    q("fin","Détail des comptes courants d'associés (188 K€) : conditions de remboursement, taux, échéance","Moyenne","Directeur Financier Groupe","À instruire"),
+    q("fin","Confirmer l'absence d'engagements hors bilan (garanties, litiges provisionnés, crédit-bail non capitalisé)","Haute","Directeur Financier Groupe","À instruire"),
 
-    q("ach","Contrats/conditions avec les 2 principaux fournisseurs de bois (scieries, ~26% des achats 2025)","Haute","Acheteur Groupe","Ouverte"),
-    q("ach","Dépendance critique à un fournisseur unique de panneaux ou de plots agglo ?","Moyenne","Acheteur Groupe","Ouverte"),
+    q("ach","Contrats/conditions avec les 2 principaux fournisseurs de bois (scieries, ~26% des achats 2025)","Haute","Acheteur Groupe","À instruire"),
+    q("ach","Dépendance critique à un fournisseur unique de panneaux ou de plots agglo ?","Moyenne","Acheteur Groupe","À instruire"),
     q("ach","Potentiel réel de mutualisation avec le panel CAP'EMBAL/LEGAA (recoupement fournisseurs, volumes)","Haute","Acheteur Groupe","En cours"),
-    q("ach","Politique de couverture / gestion du risque prix bois-panneaux (achats à terme, indexation contractuelle) ?","Moyenne","Acheteur Groupe","Ouverte"),
+    q("ach","Politique de couverture / gestion du risque prix bois-panneaux (achats à terme, indexation contractuelle) ?","Moyenne","Acheteur Groupe","À instruire"),
 
-    q("mac","Âge et état du parc machines (Weeke, Holzma HPP 300, Altendorf, Reinhardt) et plan de maintenance","Haute","Directeur Industriel","Ouverte"),
-    q("mac","Plan de renouvellement/capex industriel à moyen terme non reflété dans le business plan ?","Haute","Directeur Industriel","Ouverte"),
-    q("mac","Certification NIMP 15 (contrôle annuel ministère de l'agriculture) : dernière date, conformité","Moyenne","Directeur Industriel","Ouverte"),
-    q("mac","Capacité de production disponible vs. taux d'utilisation actuel : marge pour absorber la croissance groupe ?","Moyenne","Directeur Industriel","Ouverte"),
+    q("mac","Âge et état du parc machines (Weeke, Holzma HPP 300, Altendorf, Reinhardt) et plan de maintenance","Haute","Directeur Industriel","À instruire"),
+    q("mac","Plan de renouvellement/capex industriel à moyen terme non reflété dans le business plan ?","Haute","Directeur Industriel","À instruire"),
+    q("mac","Certification NIMP 15 (contrôle annuel ministère de l'agriculture) : dernière date, conformité","Moyenne","Directeur Industriel","À instruire"),
+    q("mac","Capacité de production disponible vs. taux d'utilisation actuel : marge pour absorber la croissance groupe ?","Moyenne","Directeur Industriel","À instruire"),
 
-    q("jur","Litiges en cours (prud'homaux, commerciaux, fiscaux) non provisionnés dans les comptes ?","Haute","Directeur M&A","Ouverte"),
-    q("jur","Historique des contrôles fiscaux et URSSAF des 3 dernières années : redressements, réserves ?","Haute","Directeur Financier Groupe","Ouverte"),
-    q("jur","Régularité des statuts, PV d'AG, absence de clauses de préemption ou d'agrément sur les titres","Moyenne","Directeur M&A","Ouverte"),
+    q("jur","Litiges en cours (prud'homaux, commerciaux, fiscaux) non provisionnés dans les comptes ?","Haute","Directeur M&A","À instruire"),
+    q("jur","Historique des contrôles fiscaux et URSSAF des 3 dernières années : redressements, réserves ?","Haute","Directeur Financier Groupe","À instruire"),
+    q("jur","Régularité des statuts, PV d'AG, absence de clauses de préemption ou d'agrément sur les titres","Moyenne","Directeur M&A","À instruire"),
 
-    q("si","Détail des polices d'assurance (multirisques, RC, flotte) : garanties, franchises, sinistralité 3 ans","Moyenne","Directeur Financier Groupe","Ouverte"),
-    q("si","Quel ERP / logiciel de production est utilisé ? Compatibilité avec les systèmes CAP'EMBAL/LEGAA ?","Moyenne","Acheteur Groupe","Ouverte"),
-    q("si","Niveau de maturité cybersécurité (sauvegardes, accès distants, RGPD) avant intégration au SI groupe","Basse","Acheteur Groupe","Ouverte")
+    q("si","Détail des polices d'assurance (multirisques, RC, flotte) : garanties, franchises, sinistralité 3 ans","Moyenne","Directeur Financier Groupe","À instruire"),
+    q("si","Quel ERP / logiciel de production est utilisé ? Compatibilité avec les systèmes CAP'EMBAL/LEGAA ?","Moyenne","Acheteur Groupe","À instruire"),
+    q("si","Niveau de maturité cybersécurité (sauvegardes, accès distants, RGPD) avant intégration au SI groupe","Basse","Acheteur Groupe","À instruire")
   ];
 }
 
-var APP_VERSION = "2.14.0-firebase";
+var APP_VERSION = "2.15.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -542,6 +550,7 @@ function fmtSize(bytes){
 function applyRemoteDataTo(target, data){
   var qs = data.questions || [];
   qs.forEach(function(q){
+    q.statut = migrateStatut(q.statut);
     if (!q.statusHistory) q.statusHistory = [{statut:q.statut, timestamp:q.createdAt||new Date().toISOString()}];
     if (!q.notes) q.notes = q.messages || [];
     if (!q.messages) q.messages = [];
@@ -672,6 +681,7 @@ function ensureDealDefaults(deal){
   if (!deal.themes || !deal.themes.length) deal.themes = DEFAULT_THEMES.slice();
   if (!deal.libraryDocs) deal.libraryDocs = [];
   deal.questions.forEach(function(q){
+    q.statut = migrateStatut(q.statut);
     if (!q.statusHistory) q.statusHistory = [{statut:q.statut, timestamp:q.createdAt||new Date().toISOString()}];
     if (!q.notes) q.notes = q.messages || [];
     if (!q.messages) q.messages = [];
@@ -1307,9 +1317,10 @@ var NOTE_COLORS = ["#DC2626","#D97706","#16A34A","#2E5395","#8C3F8C","#1A1F2B"];
 // which opens a small menu of the other options on click. Used wherever a set
 // of mutually-exclusive choices (priority, status…) needs to stay condensed
 // instead of showing every option as its own always-visible button.
-function dropdownPillHtml(btnId, menuId, currentValue, colorFn, bgFn){
+function dropdownPillHtml(btnId, menuId, currentValue, colorFn, bgFn, weightFn){
+  weightFn = weightFn || function(){ return 600; };
   return '<div style="position:relative;display:inline-block;">' +
-    '<button type="button" id="'+btnId+'" style="border:none;border-radius:6px;padding:6px 10px;font-size:11.5px;font-weight:600;color:'+colorFn(currentValue)+';background:'+bgFn(currentValue)+';display:flex;align-items:center;gap:5px;cursor:pointer;">' +
+    '<button type="button" id="'+btnId+'" style="border:none;border-radius:6px;padding:6px 10px;font-size:11.5px;font-weight:'+weightFn(currentValue)+';color:'+colorFn(currentValue)+';background:'+bgFn(currentValue)+';display:flex;align-items:center;gap:5px;cursor:pointer;">' +
       '<span>'+esc(currentValue)+'</span>' +
       '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
     '</button>' +
@@ -3049,7 +3060,7 @@ function renderTiles(){
     var statusCounts = {};
     qs.forEach(function(q){ statusCounts[q.statut] = (statusCounts[q.statut]||0) + 1; });
     var statusBadges = STATUTS.filter(function(s){ return statusCounts[s] > 0; }).map(function(s){
-      return '<span style="font-size:10px;font-weight:600;color:'+STATUT_COLOR[s]+';background:'+STATUT_BG[s]+';border-radius:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;">'+statusCounts[s]+' '+esc(s)+'</span>';
+      return '<span style="font-size:10px;font-weight:'+(s==="En cours"?800:600)+';color:'+STATUT_COLOR[s]+';background:'+STATUT_BG[s]+';border-radius:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;">'+statusCounts[s]+' '+esc(s)+'</span>';
     }).join("");
     var hauteBadge = haute ? '<span style="font-size:10px;font-weight:700;color:#A32D2D;background:#F7E7E7;border-radius:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;">🔺 '+haute+'</span>' : '';
 
@@ -3119,8 +3130,8 @@ function renderTiles(){
       if (!text) return;
       var now = new Date().toISOString();
       state.questions.push({
-        id: uid(), theme: themeId, text: text, priorite: "Moyenne", owner: "", statut: "Ouverte",
-        messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"Ouverte", timestamp: now}]
+        id: uid(), theme: themeId, text: text, priorite: "Moyenne", owner: "", statut: "À instruire",
+        messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"À instruire", timestamp: now}]
       });
       persist();
       render();
@@ -3307,7 +3318,7 @@ function buildThemeRowsHTML(themeId){
       '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>' +
       '<span title="Priorité : '+q.priorite+'" style="width:10px;height:10px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:#1A1F2B;" title="'+esc(q.text)+'">'+esc(q.text)+'</span>' +
-      '<span style="font-size:10px;font-weight:600;color:'+sc+';background:'+sbg+';border-radius:9px;padding:2px 9px;white-space:nowrap;flex-shrink:0;">'+esc(q.statut)+'</span>' +
+      '<span style="font-size:10px;font-weight:'+(q.statut==="En cours"?800:600)+';color:'+sc+';background:'+sbg+';border-radius:9px;padding:2px 9px;white-space:nowrap;flex-shrink:0;">'+esc(q.statut)+'</span>' +
       '<span style="color:#9AA2AF;flex-shrink:0;">'+noteCountIcon((q.notes||[]).length)+'</span>' +
     '</div>';
   }).join("");
@@ -3419,8 +3430,8 @@ function openThemeModal(themeId){
     var prio = document.getElementById("ddq-new-prio").value;
     var now = new Date().toISOString();
     state.questions.push({
-      id: uid(), theme: themeId, text: text, priorite: prio, owner: "", statut: "Ouverte",
-      messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"Ouverte", timestamp: now}]
+      id: uid(), theme: themeId, text: text, priorite: prio, owner: "", statut: "À instruire",
+      messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"À instruire", timestamp: now}]
     });
     persist();
     render();
@@ -3512,7 +3523,7 @@ function openQuestionModal(qid){
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
             dropdownPillHtml("ddq-f-prio-btn", "ddq-f-prio-menu", q.priorite, function(v){ return PRIO_STYLE[v].c; }, function(v){ return PRIO_STYLE[v].bg; }) +
-            dropdownPillHtml("ddq-f-statut-btn", "ddq-f-statut-menu", q.statut, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; }) +
+            dropdownPillHtml("ddq-f-statut-btn", "ddq-f-statut-menu", q.statut, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; }, function(v){ return v==="En cours" ? 800 : 600; }) +
           '</div>' +
         '</div>' +
         '<div style="padding:16px 20px;">' +
@@ -3548,11 +3559,12 @@ function openQuestionModal(qid){
     else if (!v) { textEl.value = q.text; }
   });
 
-  function updatePillBtn(btnId, value, colorFn, bgFn){
+  function updatePillBtn(btnId, value, colorFn, bgFn, weightFn){
     var btn = document.getElementById(btnId);
     if (!btn) return;
     btn.style.color = colorFn(value);
     btn.style.background = bgFn(value);
+    if (weightFn) btn.style.fontWeight = weightFn(value);
     btn.querySelector("span").textContent = value;
   }
   wireDropdownPill("ddq-f-prio-btn", "ddq-f-prio-menu", PRIORITIES, function(v){ return PRIO_STYLE[v].c; }, function(newVal){
@@ -3565,7 +3577,7 @@ function openQuestionModal(qid){
     if (newVal !== q.statut) setStatut(q, newVal);
     persist();
     render();
-    updatePillBtn("ddq-f-statut-btn", newVal, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; });
+    updatePillBtn("ddq-f-statut-btn", newVal, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; }, function(v){ return v==="En cours" ? 800 : 600; });
   });
 
   document.getElementById("ddq-q-note-add").addEventListener("click", function(){
@@ -3841,7 +3853,7 @@ function updateExportFilterBadge(){
 }
 
 function renderExportFilterPanel(){
-  var statuts = ["Ouverte","En cours","Répondue","Clôturée"];
+  var statuts = STATUTS;
   var owners = [];
   state.questions.forEach(function(q){ var o = q.owner || "(Non assigné)"; if (owners.indexOf(o) === -1) owners.push(o); });
   owners.sort();
