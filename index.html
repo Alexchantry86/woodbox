@@ -24,9 +24,10 @@
   .ddq-qrow.ddq-dragging { opacity: 0.35; }
   .ddq-qrow.ddq-drop-before { box-shadow: inset 0 2px 0 0 #2E5395; }
   .ddq-qrow.ddq-drop-after { box-shadow: inset 0 -2px 0 0 #2E5395; }
-  .ddq-tile.ddq-dragging { opacity: 0.35; }
-  .ddq-tile.ddq-drop-before { box-shadow: inset 2px 0 0 0 #2E5395; }
-  .ddq-tile.ddq-drop-after { box-shadow: inset -2px 0 0 0 #2E5395; }
+  .ddq-theme-card.ddq-dragging { opacity: 0.35; }
+  .ddq-theme-card.ddq-drop-before { box-shadow: inset 0 2px 0 0 #2E5395; }
+  .ddq-theme-card.ddq-drop-after { box-shadow: inset 0 -2px 0 0 #2E5395; }
+  .ddq-theme-row:hover { background: #FAFBFC; }
   .ddq-exp:hover { background: #F0F3F8 !important; }
 </style>
 </head>
@@ -235,13 +236,16 @@
 
     <div style="display:flex;gap:4px;border-bottom:1px solid #E2E5EA;margin-bottom:18px;">
       <button class="ddq-tab" data-tab="suivi" style="border:none;background:none;padding:9px 16px;font-size:12.5px;font-weight:600;color:#142850;border-bottom:2px solid #142850;">Suivi</button>
+      <button class="ddq-tab" data-tab="synthese" style="border:none;background:none;padding:9px 16px;font-size:12.5px;font-weight:600;color:#9AA2AF;border-bottom:2px solid transparent;">Synthèse</button>
       <button class="ddq-tab" data-tab="library" style="border:none;background:none;padding:9px 16px;font-size:12.5px;font-weight:600;color:#9AA2AF;border-bottom:2px solid transparent;">Bibliothèque</button>
       <button class="ddq-tab" data-tab="activity" style="border:none;background:none;padding:9px 16px;font-size:12.5px;font-weight:600;color:#9AA2AF;border-bottom:2px solid transparent;">Activité</button>
     </div>
 
     <div id="ddq-view-suivi">
-    <div id="ddq-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px;"></div>
+    <div id="ddq-suivi-accordion"></div>
+    </div>
 
+    <div id="ddq-view-synthese" style="display:none;">
     <div style="background:#fff;border:1px solid #E2E5EA;border-radius:12px;padding:20px 22px;">
       <div style="font-size:14px;font-weight:600;color:#142850;margin-bottom:16px;">Suivi du traitement des questions</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:32px;" id="ddq-dash-grid">
@@ -285,20 +289,7 @@
     </div>
 
     <div id="ddq-view-activity" style="display:none;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#9AA2AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:.03em;">Nouvelles questions</div>
-          <div id="ddq-act-questions"></div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#9AA2AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:.03em;">Derniers commentaires</div>
-          <div id="ddq-act-comments"></div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#9AA2AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:.03em;">Changements de statut</div>
-          <div id="ddq-act-status"></div>
-        </div>
-      </div>
+      <div id="ddq-act-journal"></div>
     </div>
 
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:16px;padding-top:12px;">
@@ -467,7 +458,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.11.1-firebase";
+var APP_VERSION = "2.13.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -2759,6 +2750,7 @@ function switchTab(tabName){
     btn.style.borderBottomColor = active ? "#142850" : "transparent";
   });
   document.getElementById("ddq-view-suivi").style.display = tabName === "suivi" ? "" : "none";
+  document.getElementById("ddq-view-synthese").style.display = tabName === "synthese" ? "" : "none";
   document.getElementById("ddq-view-library").style.display = tabName === "library" ? "" : "none";
   document.getElementById("ddq-view-activity").style.display = tabName === "activity" ? "" : "none";
   if (tabName === "library") renderLibrary();
@@ -2904,63 +2896,41 @@ function renderLibrary(){
 }
 
 function renderActivity(){
-  var LIMIT = 15;
-  var feedClick = function(container){
-    Array.prototype.forEach.call(container.querySelectorAll("[data-open-q]"), function(el){
-      el.addEventListener("click", function(){ openQuestionModal(el.getAttribute("data-open-q")); });
-    });
-  };
+  var el = document.getElementById("ddq-act-journal");
+  if (!el) return;
 
-  var qEl = document.getElementById("ddq-act-questions");
-  if (qEl) {
-    var qList = state.questions.slice().sort(function(a,b){ return new Date(b.createdAt) - new Date(a.createdAt); }).slice(0, LIMIT);
-    qEl.innerHTML = qList.length ? qList.map(function(q){
-      var t = themeOf(q.theme);
-      return '<div data-open-q="'+q.id+'" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;margin-bottom:6px;">' +
-        '<div style="font-size:10.5px;color:'+t.color+';font-weight:600;margin-bottom:2px;">'+esc(t.label)+' · '+fmtDate(q.createdAt)+'</div>' +
-        '<div style="font-size:12.5px;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(q.text)+'</div>' +
-      '</div>';
-    }).join("") : '<div style="font-size:12px;color:#9AA2AF;">Aucune question pour le moment.</div>';
-    feedClick(qEl);
+  var dealId = activeGenericDealId || "pruvot";
+  var events = collectDealActivity(dealId, state, activeDealDisplayName());
+  events.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+  events = events.slice(0, 60);
+
+  if (!events.length) {
+    el.innerHTML = '<div style="font-size:12.5px;color:#9AA2AF;padding:20px 0;text-align:center;">Aucune activité pour le moment.</div>';
+    return;
   }
 
-  var cEl = document.getElementById("ddq-act-comments");
-  if (cEl) {
-    var comments = [];
-    state.questions.forEach(function(q){ (q.notes||[]).forEach(function(n){ comments.push({q:q,n:n}); }); });
-    comments.sort(function(a,b){ return new Date(b.n.timestamp) - new Date(a.n.timestamp); });
-    comments = comments.slice(0, LIMIT);
-    cEl.innerHTML = comments.length ? comments.map(function(c){
-      var t = themeOf(c.q.theme);
-      return '<div data-open-q="'+c.q.id+'" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;margin-bottom:6px;">' +
-        '<div style="font-size:10.5px;color:#9AA2AF;margin-bottom:2px;"><span style="font-weight:600;color:'+authorColor(c.n.author)+';">'+esc(c.n.author||"Anonyme")+'</span> · '+fmtDate(c.n.timestamp)+'</div>' +
-        '<div style="font-size:12px;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(c.n.text)+'</div>' +
-        '<div style="font-size:10.5px;color:'+t.color+';margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.label)+' · '+esc(c.q.text)+'</div>' +
-      '</div>';
-    }).join("") : '<div style="font-size:12px;color:#9AA2AF;">Aucune note pour le moment.</div>';
-    feedClick(cEl);
-  }
+  var html = "";
+  var lastDay = null;
+  events.forEach(function(e, i){
+    var day = dayLabel(e.ts);
+    if (day !== lastDay) {
+      html += '<div style="font-size:11px;font-weight:600;color:#9AA2AF;text-transform:uppercase;letter-spacing:.03em;margin:' + (lastDay ? '16px' : '0') + ' 0 8px;">' + day + '</div>';
+      lastDay = day;
+    }
+    var st = KIND_STYLE[e.kind] || KIND_STYLE.note;
+    html += '<div class="ddq-feed-row" data-act-idx="'+i+'" style="cursor:pointer;display:flex;align-items:baseline;gap:10px;border:1px solid #E2E5EA;border-radius:8px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;">' +
+      '<span style="font-size:10px;font-weight:600;color:'+st.c+';background:'+st.bg+';border-radius:5px;padding:2px 7px;white-space:nowrap;">'+st.label+'</span>' +
+      '<span style="flex:1;min-width:180px;font-size:12.5px;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(e.title)+'</span>' +
+      '<span style="font-size:11px;color:#5B6472;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;">'+esc(e.meta)+'</span>' +
+      '<span style="font-size:10.5px;color:#B7BCC4;white-space:nowrap;">'+fmtDate(e.ts)+'</span>' +
+    '</div>';
+  });
+  el.innerHTML = html;
 
-  var sEl = document.getElementById("ddq-act-status");
-  if (sEl) {
-    var statusChanges = [];
-    state.questions.forEach(function(q){
-      var hist = q.statusHistory || [];
-      hist.forEach(function(h, i){ if (i===0) return; statusChanges.push({ q:q, h:h, prev:hist[i-1] }); });
-    });
-    statusChanges.sort(function(a,b){ return new Date(b.h.timestamp) - new Date(a.h.timestamp); });
-    statusChanges = statusChanges.slice(0, LIMIT);
-    sEl.innerHTML = statusChanges.length ? statusChanges.map(function(s){
-      var t = themeOf(s.q.theme);
-      var sc = STATUT_COLOR[s.h.statut] || "#5B6472";
-      return '<div data-open-q="'+s.q.id+'" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;margin-bottom:6px;">' +
-        '<div style="font-size:10.5px;color:#9AA2AF;margin-bottom:2px;">'+fmtDate(s.h.timestamp)+' · '+esc(t.label)+'</div>' +
-        '<div style="font-size:12px;color:#1A1F2B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.q.text)+'</div>' +
-        '<div style="font-size:11px;margin-top:3px;"><span style="color:#9AA2AF;">'+esc(s.prev.statut)+'</span> → <span style="color:'+sc+';font-weight:600;">'+esc(s.h.statut)+'</span></div>' +
-      '</div>';
-    }).join("") : '<div style="font-size:12px;color:#9AA2AF;">Aucun changement de statut pour le moment.</div>';
-    feedClick(sEl);
-  }
+  Array.prototype.forEach.call(el.querySelectorAll(".ddq-feed-row"), function(rowEl){
+    var idx = parseInt(rowEl.getAttribute("data-act-idx"), 10);
+    rowEl.addEventListener("click", events[idx].onClick);
+  });
 }
 
 function renderStats(){
@@ -3021,34 +2991,97 @@ function removeTheme(themeId){
   render();
 }
 
+var expandedThemes = {};
+
 function renderTiles(){
+  var container = document.getElementById("ddq-suivi-accordion");
+  if (!container) return;
   var html = "";
   state.themes.forEach(function(baseT){
     var t = themeOf(baseT.id);
     var qs = questionsFor(t.id);
     var open = qs.filter(function(q){ return q.statut!=="Clôturée"; }).length;
     var haute = qs.filter(function(q){ return q.priorite==="Haute" && q.statut!=="Clôturée"; }).length;
-    html += '' +
-    '<div data-theme="'+t.id+'" draggable="true" class="ddq-tile" style="cursor:pointer;background:#FFFFFF;border:1px solid #E2E5EA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">'+t.code+'</div>' +
-        '<div style="font-size:13.5px;font-weight:600;color:#142850;line-height:1.25;">'+esc(t.label)+'</div>' +
+    var expanded = !!expandedThemes[t.id];
+    var rowsHtml = buildThemeRowsHTML(t.id);
+
+    html += '<div data-theme-card="'+t.id+'" class="ddq-theme-card" style="background:#fff;border:1px solid #E2E5EA;border-radius:10px;margin-bottom:8px;overflow:hidden;">' +
+      '<div data-theme-toggle="'+t.id+'" draggable="true" class="ddq-theme-row" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA2AF" stroke-width="2.5" style="flex-shrink:0;transition:transform .15s;transform:rotate('+(expanded?90:0)+'deg);"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
+        '<div style="width:32px;height:32px;border-radius:8px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;">'+t.code+'</div>' +
+        '<div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.label)+'</div>' +
+        '<span style="font-size:11px;color:#5B6472;white-space:nowrap;flex-shrink:0;">'+qs.length+' question'+(qs.length>1?'s':'')+'</span>' +
+        (open ? '<span style="font-size:11px;color:#2E5395;white-space:nowrap;flex-shrink:0;">'+open+' ouverte'+(open>1?'s':'')+'</span>' : '') +
+        (haute ? '<span style="font-size:11px;color:#A32D2D;font-weight:600;white-space:nowrap;flex-shrink:0;">'+haute+' priorité haute</span>' : '') +
+        '<button data-theme-rename="'+t.id+'" title="Renommer le thème" style="border:none;background:none;color:#9AA2AF;width:26px;height:26px;flex-shrink:0;font-size:13px;">✎</button>' +
+        '<button data-theme-delete="'+t.id+'" title="Supprimer le thème" style="border:none;background:none;color:#9AA2AF;width:26px;height:26px;flex-shrink:0;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
+        '</button>' +
       '</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-        '<span style="font-size:11px;color:#5B6472;">'+qs.length+' question'+(qs.length>1?'s':'')+'</span>' +
-        (open ? '<span style="font-size:11px;color:#2E5395;">· '+open+' ouverte'+(open>1?'s':'')+'</span>' : '') +
-        (haute ? '<span style="font-size:11px;color:#A32D2D;font-weight:600;">· '+haute+' priorité haute</span>' : '') +
-      '</div>' +
+      (expanded ?
+        '<div style="padding:0 14px 14px;">' +
+          '<button data-theme-addq="'+t.id+'" style="border:1px dashed #C9CDD4;background:#FAFBFC;color:#5B6472;border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:600;width:100%;margin-bottom:10px;">+ Ajouter une question</button>' +
+          '<div id="ddq-qrow-list-'+t.id+'">' + (rowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:6px 0;">Aucune question pour le moment.</div>') + '</div>' +
+        '</div>'
+        : '') +
     '</div>';
   });
-  html += '<div id="ddq-tile-add" class="ddq-tile" style="cursor:pointer;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:74px;color:#5B6472;font-size:12.5px;font-weight:600;">' +
+  html += '<button id="ddq-tile-add" style="cursor:pointer;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#5B6472;font-size:12.5px;font-weight:600;">' +
     '<span style="font-size:18px;line-height:1;">+</span> Ajouter un thème' +
-  '</div>';
-  document.getElementById("ddq-tiles").innerHTML = html;
+  '</button>';
+
+  container.innerHTML = html;
   document.getElementById("ddq-tile-add").addEventListener("click", addNewTheme);
-  Array.prototype.forEach.call(document.querySelectorAll(".ddq-tile[data-theme]"), function(el){
-    el.addEventListener("click", function(){ openThemeModal(el.getAttribute("data-theme")); });
+
+  Array.prototype.forEach.call(container.querySelectorAll("[data-theme-toggle]"), function(el){
+    el.addEventListener("click", function(e){
+      if (e.target.closest && (e.target.closest("[data-theme-rename]") || e.target.closest("[data-theme-delete]"))) return;
+      var id = el.getAttribute("data-theme-toggle");
+      expandedThemes[id] = !expandedThemes[id];
+      renderTiles();
+    });
     wireTileDrag(el);
+  });
+  Array.prototype.forEach.call(container.querySelectorAll("[data-theme-rename]"), function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      var id = btn.getAttribute("data-theme-rename");
+      var name = prompt("Nom du thème :", themeOf(id).label);
+      if (name === null) return;
+      name = name.trim();
+      if (!name) return;
+      state.themeNames[id] = name;
+      persist();
+      render();
+    });
+  });
+  Array.prototype.forEach.call(container.querySelectorAll("[data-theme-delete]"), function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      removeTheme(btn.getAttribute("data-theme-delete"));
+      render();
+    });
+  });
+  Array.prototype.forEach.call(container.querySelectorAll("[data-theme-addq]"), function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      var themeId = btn.getAttribute("data-theme-addq");
+      var text = prompt("Rédiger la question :");
+      if (text === null) return;
+      text = text.trim();
+      if (!text) return;
+      var now = new Date().toISOString();
+      state.questions.push({
+        id: uid(), theme: themeId, text: text, priorite: "Moyenne", owner: "", statut: "Ouverte",
+        messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"Ouverte", timestamp: now}]
+      });
+      persist();
+      render();
+    });
+  });
+
+  state.themes.forEach(function(baseT){
+    if (expandedThemes[baseT.id]) wireThemeRows(baseT.id, "ddq-qrow-list-"+baseT.id);
   });
 }
 
@@ -3059,43 +3092,44 @@ function reorderThemes(orderedIds){
   persist();
 }
 
-function wireTileDrag(tileEl){
-  tileEl.addEventListener("dragstart", function(e){
+function wireTileDrag(headerEl){
+  var card = headerEl.parentElement;
+  headerEl.addEventListener("dragstart", function(e){
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", tileEl.getAttribute("data-theme"));
-    setTimeout(function(){ tileEl.classList.add("ddq-dragging"); }, 0);
+    e.dataTransfer.setData("text/plain", headerEl.getAttribute("data-theme-toggle"));
+    setTimeout(function(){ card.classList.add("ddq-dragging"); }, 0);
   });
-  tileEl.addEventListener("dragend", function(){
-    tileEl.classList.remove("ddq-dragging");
+  headerEl.addEventListener("dragend", function(){
+    card.classList.remove("ddq-dragging");
     Array.prototype.forEach.call(document.querySelectorAll(".ddq-drop-before, .ddq-drop-after"), function(el){
       el.classList.remove("ddq-drop-before", "ddq-drop-after");
     });
   });
-  tileEl.addEventListener("dragover", function(e){
+  headerEl.addEventListener("dragover", function(e){
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    var rect = tileEl.getBoundingClientRect();
-    var after = (e.clientX - rect.left) > rect.width/2;
-    tileEl.classList.toggle("ddq-drop-before", !after);
-    tileEl.classList.toggle("ddq-drop-after", after);
+    var rect = card.getBoundingClientRect();
+    var after = (e.clientY - rect.top) > rect.height/2;
+    card.classList.toggle("ddq-drop-before", !after);
+    card.classList.toggle("ddq-drop-after", after);
   });
-  tileEl.addEventListener("dragleave", function(){
-    tileEl.classList.remove("ddq-drop-before", "ddq-drop-after");
+  headerEl.addEventListener("dragleave", function(){
+    card.classList.remove("ddq-drop-before", "ddq-drop-after");
   });
-  tileEl.addEventListener("drop", function(e){
+  headerEl.addEventListener("drop", function(e){
     e.preventDefault();
-    tileEl.classList.remove("ddq-drop-before", "ddq-drop-after");
+    card.classList.remove("ddq-drop-before", "ddq-drop-after");
     var draggedId = e.dataTransfer.getData("text/plain");
-    var targetId = tileEl.getAttribute("data-theme");
+    var targetId = headerEl.getAttribute("data-theme-toggle");
     if (!draggedId || draggedId === targetId) return;
-    var list = document.getElementById("ddq-tiles");
-    var draggedEl = list.querySelector('[data-theme="'+draggedId+'"]');
-    if (!draggedEl) return;
-    var rect = tileEl.getBoundingClientRect();
-    var after = (e.clientX - rect.left) > rect.width/2;
-    if (after) list.insertBefore(draggedEl, tileEl.nextSibling);
-    else list.insertBefore(draggedEl, tileEl);
-    var ids = Array.prototype.map.call(list.querySelectorAll(".ddq-tile[data-theme]"), function(el){ return el.getAttribute("data-theme"); });
+    var list = card.parentElement;
+    var draggedCard = list.querySelector('[data-theme-card="'+draggedId+'"]');
+    if (!draggedCard) return;
+    var rect = card.getBoundingClientRect();
+    var after = (e.clientY - rect.top) > rect.height/2;
+    if (after) list.insertBefore(draggedCard, card.nextSibling);
+    else list.insertBefore(draggedCard, card);
+    var ids = Array.prototype.map.call(list.querySelectorAll("[data-theme-card]"), function(el){ return el.getAttribute("data-theme-card"); });
     reorderThemes(ids);
   });
 }
@@ -3225,15 +3259,14 @@ function buildThemeRowsHTML(themeId){
       '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>' +
       '<span title="Priorité : '+q.priorite+'" style="width:10px;height:10px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:#1A1F2B;" title="'+esc(q.text)+'">'+esc(q.text)+'</span>' +
-      '<span title="'+esc(q.owner||"Non assigné")+'" style="width:20px;height:20px;border-radius:50%;background:'+authorColor(q.owner)+';color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+esc(initials(q.owner))+'</span>' +
       '<span style="font-size:10.5px;font-weight:600;color:'+sc+';white-space:nowrap;flex-shrink:0;">'+q.statut+'</span>' +
       '<span style="color:#9AA2AF;flex-shrink:0;">'+noteCountIcon((q.notes||[]).length)+'</span>' +
     '</div>';
   }).join("");
 }
 
-function wireThemeRows(themeId){
-  var list = document.getElementById("ddq-qrow-list");
+function wireThemeRows(themeId, containerId){
+  var list = document.getElementById(containerId || "ddq-qrow-list");
   if (!list) return;
   Array.prototype.forEach.call(list.querySelectorAll(".ddq-qrow"), function(row){
     row.addEventListener("click", function(e){
@@ -3264,7 +3297,7 @@ function openThemeModal(themeId){
 
   var html =
     '<div id="ddq-overlay-theme" class="ddq-overlay" data-theme="'+themeId+'">' +
-      '<div class="ddq-modal" style="max-width:640px;">' +
+      '<div class="ddq-modal" style="max-width:860px;">' +
         '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:14px 14px 0 0;">' +
           '<input id="ddq-theme-title" value="'+esc(t.label)+'" style="font-size:15px;font-weight:600;color:'+t.color+';border:1px solid transparent;border-radius:6px;padding:2px 4px;margin:-2px -4px;background:transparent;flex:1;min-width:0;" />' +
           '<div style="display:flex;align-items:center;gap:8px;">' +
@@ -3282,7 +3315,6 @@ function openThemeModal(themeId){
               '<select id="ddq-new-prio" style="border:1px solid #E2E5EA;border-radius:8px;padding:7px 8px;">' +
                 PRIORITIES.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join("") +
               '</select>' +
-              '<input id="ddq-new-owner" placeholder="Owner (responsable)" style="border:1px solid #E2E5EA;border-radius:8px;padding:7px 10px;flex:1;min-width:160px;" />' +
               '<button id="ddq-new-cancel" style="background:#fff;color:#5B6472;border:1px solid #E2E5EA;border-radius:8px;padding:7px 14px;">Annuler</button>' +
               '<button id="ddq-new-submit" style="background:#142850;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-weight:600;">Ajouter</button>' +
             '</div>' +
@@ -3331,17 +3363,15 @@ function openThemeModal(themeId){
   document.getElementById("ddq-new-cancel").addEventListener("click", function(){
     addForm.style.display = "none";
     document.getElementById("ddq-new-text").value = "";
-    document.getElementById("ddq-new-owner").value = "";
   });
 
   document.getElementById("ddq-new-submit").addEventListener("click", function(){
     var text = document.getElementById("ddq-new-text").value.trim();
     if (!text) return;
     var prio = document.getElementById("ddq-new-prio").value;
-    var owner = document.getElementById("ddq-new-owner").value.trim();
     var now = new Date().toISOString();
     state.questions.push({
-      id: uid(), theme: themeId, text: text, priorite: prio, owner: owner, statut: "Ouverte",
+      id: uid(), theme: themeId, text: text, priorite: prio, owner: "", statut: "Ouverte",
       messages: [], notes: [], attachments: [], createdAt: now, statusHistory: [{statut:"Ouverte", timestamp: now}]
     });
     persist();
@@ -3390,7 +3420,7 @@ function wireRowDrag(rowEl, themeId){
     var targetId = rowEl.getAttribute("data-q");
     if (!draggedId || draggedId === targetId) return;
     var draggedEl = document.querySelector('.ddq-qrow[data-q="'+draggedId+'"]');
-    var list = document.getElementById("ddq-qrow-list");
+    var list = rowEl.parentElement;
     if (!draggedEl || !list) return;
     var rect = rowEl.getBoundingClientRect();
     var after = (e.clientY - rect.top) > rect.height/2;
@@ -3424,64 +3454,36 @@ function openQuestionModal(qid){
     '</div>';
   }).join("") || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucune note pour le moment.</div>';
 
-  var attRows = q.attachments.map(function(a){
-    var fileIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
-    var nameHtml = a.url
-      ? '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="font-weight:600;color:#142850;text-decoration:none;border-bottom:1px solid #C9CDD4;">'+esc(a.name)+'</a>'
-      : '<span style="font-weight:600;">'+esc(a.name)+'</span>';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:#FAFBFC;border:1px solid #E2E5EA;border-radius:8px;padding:6px 10px;margin-bottom:6px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;color:#1A1F2B;">' + fileIcon +
-        '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nameHtml +
-        (a.size ? ' <span style="color:#9AA2AF;">('+fmtSize(a.size)+')</span>' : '') +
-        (a.note ? ' — <span style="color:#5B6472;">'+esc(a.note)+'</span>' : '') + '</span>' +
-      '</div>' +
-      '<button data-att="'+a.id+'" class="ddq-att-remove" style="border:none;background:none;color:#9AA2AF;font-size:12px;flex-shrink:0;">Retirer</button>' +
-    '</div>';
-  }).join("");
-
   var html =
     '<div id="ddq-overlay-question" class="ddq-overlay" style="z-index:1001;">' +
       '<div class="ddq-modal" style="max-width:560px;">' +
-        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-radius:14px 14px 0 0;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">'+esc(t.label)+'</div>' +
-            '<textarea id="ddq-f-text" rows="2" style="font-size:14px;color:#1A1F2B;line-height:1.4;width:100%;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;resize:vertical;background:transparent;font-family:inherit;">'+esc(q.text)+'</textarea>' +
+        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;border-radius:14px 14px 0 0;">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">'+esc(t.label)+'</div>' +
+              '<textarea id="ddq-f-text" rows="2" style="font-size:14px;color:#1A1F2B;line-height:1.4;width:100%;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;resize:vertical;background:transparent;font-family:inherit;">'+esc(q.text)+'</textarea>' +
+            '</div>' +
+            '<button id="ddq-q-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;flex-shrink:0;">Fermer</button>' +
           '</div>' +
-          '<div style="display:flex;gap:8px;flex-shrink:0;">' +
-            '<button id="ddq-q-save" style="border:1px solid #142850;background:#142850;color:#fff;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;white-space:nowrap;">Sauvegarder</button>' +
-            '<button id="ddq-q-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;">Fermer</button>' +
+          '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">' +
+            PRIORITIES.map(function(p){
+              var st = PRIO_STYLE[p];
+              var active = p === q.priorite;
+              return '<button class="ddq-pill-prio" data-prio="'+p+'" style="border:1px solid '+(active?st.c:'#E2E5EA')+';background:'+(active?st.c:'#fff')+';color:'+(active?'#fff':'#5B6472')+';border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">'+p+'</button>';
+            }).join("") +
+          '</div>' +
+          '<div style="display:flex;gap:5px;flex-wrap:wrap;">' +
+            STATUTS.map(function(s){
+              var color = STATUT_COLOR[s];
+              var active = s === q.statut;
+              return '<button class="ddq-pill-statut" data-statut="'+s+'" style="border:1px solid '+(active?color:'#E2E5EA')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#5B6472')+';border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">'+s+'</button>';
+            }).join("") +
           '</div>' +
         '</div>' +
         '<div style="padding:16px 20px;">' +
-          '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">' +
-            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;">Priorité' +
-              '<select id="ddq-f-prio" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;">' +
-              PRIORITIES.map(function(p){ return '<option value="'+p+'" '+(p===q.priorite?"selected":"")+'>'+p+'</option>'; }).join("") +
-              '</select></label>' +
-            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;">Statut' +
-              '<select id="ddq-f-statut" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;">' +
-              STATUTS.map(function(s){ return '<option value="'+s+'" '+(s===q.statut?"selected":"")+'>'+s+'</option>'; }).join("") +
-              '</select></label>' +
-            '<label style="font-size:11px;color:#5B6472;display:flex;flex-direction:column;gap:3px;flex:1;min-width:160px;">Owner' +
-              '<input id="ddq-f-owner" value="'+esc(q.owner)+'" style="border:1px solid #E2E5EA;border-radius:6px;padding:5px 8px;" /></label>' +
-          '</div>' +
-
           '<div style="font-size:11.5px;font-weight:600;color:#142850;margin-bottom:8px;">Notes</div>' +
           '<div id="ddq-q-notes-list">'+notesHtml+'</div>' +
           noteComposerHtml("ddq-q-note-text", "ddq-q-note-add", "ddq-q-note-chips") +
-
-          '<div style="font-size:11.5px;font-weight:600;color:#142850;margin-bottom:6px;">Pièces jointes</div>' +
-          '<div id="ddq-att-list">' + (attRows || '<div style="font-size:12px;color:#9AA2AF;margin-bottom:8px;">Aucune pièce jointe.</div>') + '</div>' +
-          '<div style="border:1px dashed #C9CDD4;border-radius:8px;padding:10px;margin-bottom:20px;">' +
-            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-              '<input id="ddq-att-url" placeholder="Lien Google Drive" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:2;min-width:180px;" />' +
-              '<input id="ddq-att-name" placeholder="Nom du document" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:140px;" />' +
-            '</div>' +
-            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
-              '<input id="ddq-att-note" placeholder="Note (optionnel)" style="border:1px solid #E2E5EA;border-radius:6px;padding:6px 8px;flex:1;min-width:120px;" />' +
-              '<button id="ddq-att-add" style="background:#fff;color:#142850;border:1px solid #142850;border-radius:6px;padding:6px 14px;font-weight:600;">Associer</button>' +
-            '</div>' +
-          '</div>' +
 
           '<button id="ddq-delete-btn" style="display:flex;align-items:center;gap:6px;justify-content:center;width:100%;background:#fff;color:#A32D2D;border:1px solid #F0C9C9;border-radius:8px;padding:8px 14px;font-size:12px;">' +
             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
@@ -3500,21 +3502,6 @@ function openQuestionModal(qid){
   });
   document.getElementById("ddq-q-close").addEventListener("click", function(){ closeModalById("ddq-overlay-question"); });
 
-  document.getElementById("ddq-q-save").addEventListener("click", function(){
-    var saveBtn = this;
-    if (saveBtn.disabled) return;
-
-    var textVal = document.getElementById("ddq-f-text").value.trim();
-    if (textVal) q.text = textVal;
-    q.priorite = document.getElementById("ddq-f-prio").value;
-    var newStatut = document.getElementById("ddq-f-statut").value;
-    if (newStatut !== q.statut) setStatut(q, newStatut);
-    q.owner = document.getElementById("ddq-f-owner").value;
-    render();
-
-    saveWithFeedback(saveBtn, "Sauvegarder");
-  });
-
   var textEl = document.getElementById("ddq-f-text");
   textEl.addEventListener("focus", function(){ textEl.style.border = "1px solid #E2E5EA"; });
   textEl.addEventListener("blur", function(){
@@ -3524,9 +3511,33 @@ function openQuestionModal(qid){
     else if (!v) { textEl.value = q.text; }
   });
 
-  document.getElementById("ddq-f-prio").addEventListener("change", function(e){ q.priorite = e.target.value; persist(); render(); });
-  document.getElementById("ddq-f-statut").addEventListener("change", function(e){ setStatut(q, e.target.value); persist(); render(); });
-  document.getElementById("ddq-f-owner").addEventListener("change", function(e){ q.owner = e.target.value; persist(); render(); });
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-prio"), function(btn){
+    btn.addEventListener("click", function(){
+      q.priorite = btn.getAttribute("data-prio");
+      persist();
+      render();
+      Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-prio"), function(b){
+        var p = b.getAttribute("data-prio"), st = PRIO_STYLE[p], active = p === q.priorite;
+        b.style.background = active ? st.c : "#fff";
+        b.style.borderColor = active ? st.c : "#E2E5EA";
+        b.style.color = active ? "#fff" : "#5B6472";
+      });
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-statut"), function(btn){
+    btn.addEventListener("click", function(){
+      var newStatut = btn.getAttribute("data-statut");
+      if (newStatut !== q.statut) setStatut(q, newStatut);
+      persist();
+      render();
+      Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-statut"), function(b){
+        var s = b.getAttribute("data-statut"), color = STATUT_COLOR[s], active = s === q.statut;
+        b.style.background = active ? color : "#fff";
+        b.style.borderColor = active ? color : "#E2E5EA";
+        b.style.color = active ? "#fff" : "#5B6472";
+      });
+    });
+  });
 
   document.getElementById("ddq-q-note-add").addEventListener("click", function(){
     var editEl = document.getElementById("ddq-q-note-text");
@@ -3564,30 +3575,6 @@ function openQuestionModal(qid){
       closeModalById("ddq-overlay-question");
       render();
     }
-  });
-
-  document.getElementById("ddq-att-add").addEventListener("click", function(){
-    var urlInput = document.getElementById("ddq-att-url");
-    var url = urlInput.value.trim();
-    if (!url) { urlInput.focus(); return; }
-    var name = document.getElementById("ddq-att-name").value.trim() || "Document";
-    var note = document.getElementById("ddq-att-note").value.trim();
-    q.attachments.push({ id: uid(), name: name, note: note, url: url, timestamp: new Date().toISOString() });
-    persist();
-    render();
-    closeModalById("ddq-overlay-question");
-    openQuestionModal(qid);
-  });
-
-  Array.prototype.forEach.call(document.querySelectorAll(".ddq-att-remove"), function(btn){
-    btn.addEventListener("click", function(){
-      var attId = btn.getAttribute("data-att");
-      q.attachments = q.attachments.filter(function(a){ return a.id!==attId; });
-      persist();
-      render();
-      closeModalById("ddq-overlay-question");
-      openQuestionModal(qid);
-    });
   });
 }
 
