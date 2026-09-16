@@ -338,6 +338,7 @@ var EXPLO_SEED = [{"id": "s2", "name": "Négoce Produits d’emballages techniqu
 var PRIORITIES = ["Haute","Moyenne","Basse"];
 var STATUTS = ["Ouverte","En cours","Répondue","Clôturée"];
 var STATUT_COLOR = { "Ouverte":"#5B6472", "En cours":"#2E5395", "Répondue":"#8A5A1F", "Clôturée":"#1F7A4D" };
+var STATUT_BG = { "Ouverte":"#EEF0F3", "En cours":"#E6ECF7", "Répondue":"#FBF2DF", "Clôturée":"#E3F5EA" };
 
 var PRIO_STYLE = {
   "Haute":   { c:"#DC2626", bg:"#FEE2E2" },
@@ -458,7 +459,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.13.0-firebase";
+var APP_VERSION = "2.14.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -1301,6 +1302,46 @@ function parseMentions(text){
 }
 
 var NOTE_COLORS = ["#DC2626","#D97706","#16A34A","#2E5395","#8C3F8C","#1A1F2B"];
+
+// Compact "dropdown pill" — a single colored button showing the current value,
+// which opens a small menu of the other options on click. Used wherever a set
+// of mutually-exclusive choices (priority, status…) needs to stay condensed
+// instead of showing every option as its own always-visible button.
+function dropdownPillHtml(btnId, menuId, currentValue, colorFn, bgFn){
+  return '<div style="position:relative;display:inline-block;">' +
+    '<button type="button" id="'+btnId+'" style="border:none;border-radius:6px;padding:6px 10px;font-size:11.5px;font-weight:600;color:'+colorFn(currentValue)+';background:'+bgFn(currentValue)+';display:flex;align-items:center;gap:5px;cursor:pointer;">' +
+      '<span>'+esc(currentValue)+'</span>' +
+      '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+    '</button>' +
+    '<div id="'+menuId+'" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #E2E5EA;border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.14);min-width:135px;z-index:40;overflow:hidden;"></div>' +
+  '</div>';
+}
+function wireDropdownPill(btnId, menuId, options, colorFn, onSelect){
+  var btn = document.getElementById(btnId);
+  var menu = document.getElementById(menuId);
+  if (!btn || !menu) return;
+  menu.innerHTML = options.map(function(opt){
+    return '<button type="button" data-val="'+esc(opt)+'" style="display:block;width:100%;text-align:left;border:none;background:#fff;padding:8px 12px;font-size:12px;font-weight:600;color:'+colorFn(opt)+';">'+esc(opt)+'</button>';
+  }).join("");
+  btn.addEventListener("click", function(e){
+    e.stopPropagation();
+    var opening = menu.style.display !== "block";
+    Array.prototype.forEach.call(document.querySelectorAll(".ddq-dropdown-menu-open"), function(m){ m.style.display = "none"; m.classList.remove("ddq-dropdown-menu-open"); });
+    menu.style.display = opening ? "block" : "none";
+    menu.classList.toggle("ddq-dropdown-menu-open", opening);
+  });
+  Array.prototype.forEach.call(menu.querySelectorAll("[data-val]"), function(optBtn){
+    optBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      menu.style.display = "none";
+      menu.classList.remove("ddq-dropdown-menu-open");
+      onSelect(optBtn.getAttribute("data-val"));
+    });
+  });
+  document.addEventListener("click", function(e){
+    if (!btn.contains(e.target) && !menu.contains(e.target)) { menu.style.display = "none"; menu.classList.remove("ddq-dropdown-menu-open"); }
+  });
+}
 
 function noteToolbarHtml(toolbarId){
   var btnBase = "border:none;background:none;color:#5B6472;border-radius:6px;width:26px;height:24px;font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;";
@@ -3005,23 +3046,29 @@ function renderTiles(){
     var expanded = !!expandedThemes[t.id];
     var rowsHtml = buildThemeRowsHTML(t.id);
 
-    html += '<div data-theme-card="'+t.id+'" class="ddq-theme-card" style="background:#fff;border:1px solid #E2E5EA;border-radius:10px;margin-bottom:8px;overflow:hidden;">' +
-      '<div data-theme-toggle="'+t.id+'" draggable="true" class="ddq-theme-row" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;">' +
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9AA2AF" stroke-width="2.5" style="flex-shrink:0;transition:transform .15s;transform:rotate('+(expanded?90:0)+'deg);"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
-        '<div style="width:32px;height:32px;border-radius:8px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;">'+t.code+'</div>' +
-        '<div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.label)+'</div>' +
-        '<span style="font-size:11px;color:#5B6472;white-space:nowrap;flex-shrink:0;">'+qs.length+' question'+(qs.length>1?'s':'')+'</span>' +
-        (open ? '<span style="font-size:11px;color:#2E5395;white-space:nowrap;flex-shrink:0;">'+open+' ouverte'+(open>1?'s':'')+'</span>' : '') +
-        (haute ? '<span style="font-size:11px;color:#A32D2D;font-weight:600;white-space:nowrap;flex-shrink:0;">'+haute+' priorité haute</span>' : '') +
-        '<button data-theme-rename="'+t.id+'" title="Renommer le thème" style="border:none;background:none;color:#9AA2AF;width:26px;height:26px;flex-shrink:0;font-size:13px;">✎</button>' +
-        '<button data-theme-delete="'+t.id+'" title="Supprimer le thème" style="border:none;background:none;color:#9AA2AF;width:26px;height:26px;flex-shrink:0;">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
+    var statusCounts = {};
+    qs.forEach(function(q){ statusCounts[q.statut] = (statusCounts[q.statut]||0) + 1; });
+    var statusBadges = STATUTS.filter(function(s){ return statusCounts[s] > 0; }).map(function(s){
+      return '<span style="font-size:10px;font-weight:600;color:'+STATUT_COLOR[s]+';background:'+STATUT_BG[s]+';border-radius:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;">'+statusCounts[s]+' '+esc(s)+'</span>';
+    }).join("");
+    var hauteBadge = haute ? '<span style="font-size:10px;font-weight:700;color:#A32D2D;background:#F7E7E7;border-radius:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;">🔺 '+haute+'</span>' : '';
+
+    html += '<div data-theme-card="'+t.id+'" class="ddq-theme-card" style="background:#fff;border:1px solid #E2E5EA;border-radius:9px;margin-bottom:6px;overflow:hidden;">' +
+      '<div data-theme-toggle="'+t.id+'" draggable="true" class="ddq-theme-row" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:9px 12px;flex-wrap:wrap;">' +
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9AA2AF" stroke-width="2.5" style="flex-shrink:0;transition:transform .15s;transform:rotate('+(expanded?90:0)+'deg);"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
+        '<div style="width:27px;height:27px;border-radius:7px;background:'+t.bg+';color:'+t.color+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;">'+t.code+'</div>' +
+        '<div style="flex:1;min-width:120px;font-size:13px;font-weight:600;color:#142850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.label)+'</div>' +
+        (statusBadges || '<span style="font-size:10.5px;color:#C9CDD4;">Aucune question</span>') +
+        hauteBadge +
+        '<button data-theme-rename="'+t.id+'" title="Renommer le thème" style="border:none;background:none;color:#9AA2AF;width:24px;height:24px;flex-shrink:0;font-size:12.5px;">✎</button>' +
+        '<button data-theme-delete="'+t.id+'" title="Supprimer le thème" style="border:none;background:none;color:#9AA2AF;width:24px;height:24px;flex-shrink:0;">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
         '</button>' +
       '</div>' +
       (expanded ?
-        '<div style="padding:0 14px 14px;">' +
-          '<button data-theme-addq="'+t.id+'" style="border:1px dashed #C9CDD4;background:#FAFBFC;color:#5B6472;border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:600;width:100%;margin-bottom:10px;">+ Ajouter une question</button>' +
-          '<div id="ddq-qrow-list-'+t.id+'">' + (rowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:6px 0;">Aucune question pour le moment.</div>') + '</div>' +
+        '<div style="padding:0 12px 12px;">' +
+          '<button data-theme-addq="'+t.id+'" style="border:1px dashed #C9CDD4;background:#FAFBFC;color:#5B6472;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:600;width:100%;margin-bottom:8px;">+ Ajouter une question</button>' +
+          '<div id="ddq-qrow-list-'+t.id+'">' + (rowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:4px 0;">Aucune question pour le moment.</div>') + '</div>' +
         '</div>'
         : '') +
     '</div>';
@@ -3255,11 +3302,12 @@ function buildThemeRowsHTML(themeId){
   return qs.map(function(q){
     var pStyle = PRIO_STYLE[q.priorite] || PRIO_STYLE["Basse"];
     var sc = STATUT_COLOR[q.statut] || "#5B6472";
-    return '<div data-q="'+q.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:8px 8px 8px 4px;margin-bottom:6px;display:flex;align-items:center;gap:6px;transition:background .15s;">' +
-      '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>' +
+    var sbg = STATUT_BG[q.statut] || "#EEF0F3";
+    return '<div data-q="'+q.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:6px 8px 6px 4px;margin-bottom:5px;display:flex;align-items:center;gap:6px;transition:background .15s;">' +
+      '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>' +
       '<span title="Priorité : '+q.priorite+'" style="width:10px;height:10px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:#1A1F2B;" title="'+esc(q.text)+'">'+esc(q.text)+'</span>' +
-      '<span style="font-size:10.5px;font-weight:600;color:'+sc+';white-space:nowrap;flex-shrink:0;">'+q.statut+'</span>' +
+      '<span style="font-size:10px;font-weight:600;color:'+sc+';background:'+sbg+';border-radius:9px;padding:2px 9px;white-space:nowrap;flex-shrink:0;">'+esc(q.statut)+'</span>' +
       '<span style="color:#9AA2AF;flex-shrink:0;">'+noteCountIcon((q.notes||[]).length)+'</span>' +
     '</div>';
   }).join("");
@@ -3457,30 +3505,19 @@ function openQuestionModal(qid){
   var html =
     '<div id="ddq-overlay-question" class="ddq-overlay" style="z-index:1001;">' +
       '<div class="ddq-modal" style="max-width:560px;">' +
-        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:16px 20px;border-radius:14px 14px 0 0;">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;">'+esc(t.label)+'</div>' +
-              '<textarea id="ddq-f-text" rows="2" style="font-size:14px;color:#1A1F2B;line-height:1.4;width:100%;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;resize:vertical;background:transparent;font-family:inherit;">'+esc(q.text)+'</textarea>' +
-            '</div>' +
+        '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:14px 20px;border-radius:14px 14px 0 0;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">' +
+            '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;">'+esc(t.label)+'</div>' +
             '<button id="ddq-q-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;flex-shrink:0;">Fermer</button>' +
           '</div>' +
-          '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">' +
-            PRIORITIES.map(function(p){
-              var st = PRIO_STYLE[p];
-              var active = p === q.priorite;
-              return '<button class="ddq-pill-prio" data-prio="'+p+'" style="border:1px solid '+(active?st.c:'#E2E5EA')+';background:'+(active?st.c:'#fff')+';color:'+(active?'#fff':'#5B6472')+';border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">'+p+'</button>';
-            }).join("") +
-          '</div>' +
-          '<div style="display:flex;gap:5px;flex-wrap:wrap;">' +
-            STATUTS.map(function(s){
-              var color = STATUT_COLOR[s];
-              var active = s === q.statut;
-              return '<button class="ddq-pill-statut" data-statut="'+s+'" style="border:1px solid '+(active?color:'#E2E5EA')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#5B6472')+';border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;">'+s+'</button>';
-            }).join("") +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            dropdownPillHtml("ddq-f-prio-btn", "ddq-f-prio-menu", q.priorite, function(v){ return PRIO_STYLE[v].c; }, function(v){ return PRIO_STYLE[v].bg; }) +
+            dropdownPillHtml("ddq-f-statut-btn", "ddq-f-statut-menu", q.statut, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; }) +
           '</div>' +
         '</div>' +
         '<div style="padding:16px 20px;">' +
+          '<textarea id="ddq-f-text" rows="2" style="font-size:14px;color:#1A1F2B;line-height:1.4;width:100%;border:1px solid #E2E5EA;border-radius:8px;padding:8px 10px;resize:vertical;background:transparent;font-family:inherit;margin-bottom:16px;">'+esc(q.text)+'</textarea>' +
+
           '<div style="font-size:11.5px;font-weight:600;color:#142850;margin-bottom:8px;">Notes</div>' +
           '<div id="ddq-q-notes-list">'+notesHtml+'</div>' +
           noteComposerHtml("ddq-q-note-text", "ddq-q-note-add", "ddq-q-note-chips") +
@@ -3511,32 +3548,24 @@ function openQuestionModal(qid){
     else if (!v) { textEl.value = q.text; }
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-prio"), function(btn){
-    btn.addEventListener("click", function(){
-      q.priorite = btn.getAttribute("data-prio");
-      persist();
-      render();
-      Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-prio"), function(b){
-        var p = b.getAttribute("data-prio"), st = PRIO_STYLE[p], active = p === q.priorite;
-        b.style.background = active ? st.c : "#fff";
-        b.style.borderColor = active ? st.c : "#E2E5EA";
-        b.style.color = active ? "#fff" : "#5B6472";
-      });
-    });
+  function updatePillBtn(btnId, value, colorFn, bgFn){
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.style.color = colorFn(value);
+    btn.style.background = bgFn(value);
+    btn.querySelector("span").textContent = value;
+  }
+  wireDropdownPill("ddq-f-prio-btn", "ddq-f-prio-menu", PRIORITIES, function(v){ return PRIO_STYLE[v].c; }, function(newVal){
+    q.priorite = newVal;
+    persist();
+    render();
+    updatePillBtn("ddq-f-prio-btn", newVal, function(v){ return PRIO_STYLE[v].c; }, function(v){ return PRIO_STYLE[v].bg; });
   });
-  Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-statut"), function(btn){
-    btn.addEventListener("click", function(){
-      var newStatut = btn.getAttribute("data-statut");
-      if (newStatut !== q.statut) setStatut(q, newStatut);
-      persist();
-      render();
-      Array.prototype.forEach.call(document.querySelectorAll(".ddq-pill-statut"), function(b){
-        var s = b.getAttribute("data-statut"), color = STATUT_COLOR[s], active = s === q.statut;
-        b.style.background = active ? color : "#fff";
-        b.style.borderColor = active ? color : "#E2E5EA";
-        b.style.color = active ? "#fff" : "#5B6472";
-      });
-    });
+  wireDropdownPill("ddq-f-statut-btn", "ddq-f-statut-menu", STATUTS, function(v){ return STATUT_COLOR[v]; }, function(newVal){
+    if (newVal !== q.statut) setStatut(q, newVal);
+    persist();
+    render();
+    updatePillBtn("ddq-f-statut-btn", newVal, function(v){ return STATUT_COLOR[v]; }, function(v){ return STATUT_BG[v]; });
   });
 
   document.getElementById("ddq-q-note-add").addEventListener("click", function(){
