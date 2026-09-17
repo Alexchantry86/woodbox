@@ -472,7 +472,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.15.2-firebase";
+var APP_VERSION = "2.15.3-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -3063,7 +3063,11 @@ function renderTiles(){
     var counts = {};
     STATUTS.forEach(function(s){ counts[s] = qs.filter(function(q){ return q.statut===s; }).length; });
     var miniBar = qs.length
-      ? '<div style="width:130px;flex-shrink:0;">' + stackedBar(qs.length, counts, 10) + '</div>'
+      ? '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+          STATUTS.map(function(s){
+            return '<span title="'+esc(s)+'" style="min-width:22px;text-align:center;font-size:12px;font-weight:'+statutWeight(s)+';color:'+STATUT_COLOR[s]+';background:'+STATUT_BG[s]+';border-radius:6px;padding:2px 7px;">'+counts[s]+'</span>';
+          }).join("") +
+        '</div>'
       : '<span style="font-size:10.5px;color:#C9CDD4;flex-shrink:0;">Aucune question</span>';
 
     html += '<div data-theme-card="'+t.id+'" class="ddq-theme-card" style="background:#fff;border:1px solid #E2E5EA;border-radius:9px;margin-bottom:6px;overflow:hidden;">' +
