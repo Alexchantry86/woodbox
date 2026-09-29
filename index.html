@@ -212,8 +212,8 @@
         <div id="ddq-filter-panel" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid #E2E5EA;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:260px;max-height:400px;overflow-y:auto;z-index:50;padding:14px;">
           <div style="font-size:11px;font-weight:600;color:#142850;margin-bottom:6px;">Statut</div>
           <div id="ddq-filter-statuts" style="margin-bottom:12px;"></div>
-          <div style="font-size:11px;font-weight:600;color:#142850;margin-bottom:6px;">Owner</div>
-          <div id="ddq-filter-owners" style="margin-bottom:12px;"></div>
+          <div style="font-size:11px;font-weight:600;color:#142850;margin-bottom:6px;">Priorité</div>
+          <div id="ddq-filter-priorities" style="margin-bottom:12px;"></div>
           <div style="font-size:11px;font-weight:600;color:#142850;margin-bottom:6px;">Thème</div>
           <div id="ddq-filter-themes" style="margin-bottom:12px;"></div>
           <div style="display:flex;gap:8px;">
@@ -242,6 +242,8 @@
     </div>
 
     <div id="ddq-view-suivi">
+    <div id="ddq-suivi-priority-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>
+    <div id="ddq-suivi-status-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
     <div id="ddq-suivi-accordion"></div>
     </div>
 
@@ -472,7 +474,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.15.3-firebase";
+var APP_VERSION = "2.16.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -3050,15 +3052,68 @@ function removeTheme(themeId){
 
 var expandedThemes = {};
 
+var suiviStatutFilter = "all";
+var suiviPriorityFilter = "all";
+var SUIVI_STATUT_FILTERS = [{ value: "all", label: "Tous statuts" }].concat(
+  STATUTS.map(function(s){ return { value: s, label: s }; })
+);
+var SUIVI_PRIORITY_FILTERS = [{ value: "all", label: "Toutes priorités" }].concat(
+  PRIORITIES.map(function(p){ return { value: p, label: p }; })
+);
+
+function suiviFilteredQuestions(themeId){
+  var qs = questionsFor(themeId);
+  if (suiviStatutFilter !== "all") qs = qs.filter(function(q){ return q.statut === suiviStatutFilter; });
+  if (suiviPriorityFilter !== "all") qs = qs.filter(function(q){ return q.priorite === suiviPriorityFilter; });
+  return qs;
+}
+
+function renderSuiviFilters(){
+  var statutEl = document.getElementById("ddq-suivi-status-filters");
+  if (statutEl) {
+    statutEl.innerHTML = SUIVI_STATUT_FILTERS.map(function(f){
+      var active = suiviStatutFilter === f.value;
+      var c = f.value === "all" ? "#142850" : STATUT_COLOR[f.value];
+      return '<button class="ddq-suivi-statutfilter" data-suivi-statut-filter="'+f.value+'" style="' +
+        (active ? "border:1px solid "+c+";background:"+c+";color:#fff;" : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;") +
+        'border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;">'+f.label+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(statutEl.querySelectorAll("[data-suivi-statut-filter]"), function(btn){
+      btn.addEventListener("click", function(){
+        suiviStatutFilter = btn.getAttribute("data-suivi-statut-filter");
+        renderTiles();
+      });
+    });
+  }
+  var prioEl = document.getElementById("ddq-suivi-priority-filters");
+  if (prioEl) {
+    prioEl.innerHTML = SUIVI_PRIORITY_FILTERS.map(function(f){
+      var active = suiviPriorityFilter === f.value;
+      var c = f.value === "all" ? "#A32D2D" : PRIO_STYLE[f.value].c;
+      return '<button class="ddq-suivi-priofilter" data-suivi-priority-filter="'+f.value+'" style="' +
+        (active ? "border:1px solid "+c+";background:"+c+";color:#fff;" : "border:1px solid #E2E5EA;background:#fff;color:#5B6472;") +
+        'border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;">'+f.label+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(prioEl.querySelectorAll("[data-suivi-priority-filter]"), function(btn){
+      btn.addEventListener("click", function(){
+        suiviPriorityFilter = btn.getAttribute("data-suivi-priority-filter");
+        renderTiles();
+      });
+    });
+  }
+}
+
 function renderTiles(){
   var container = document.getElementById("ddq-suivi-accordion");
   if (!container) return;
+  renderSuiviFilters();
+  var suiviFilterActive = (suiviStatutFilter !== "all" || suiviPriorityFilter !== "all");
   var html = "";
   state.themes.forEach(function(baseT){
     var t = themeOf(baseT.id);
-    var qs = questionsFor(t.id);
+    var qs = suiviFilteredQuestions(t.id);
     var expanded = !!expandedThemes[t.id];
-    var rowsHtml = buildThemeRowsHTML(t.id);
+    var rowsHtml = buildThemeRowsHTML(t.id, qs, !suiviFilterActive);
 
     var counts = {};
     STATUTS.forEach(function(s){ counts[s] = qs.filter(function(q){ return q.statut===s; }).length; });
@@ -3084,7 +3139,7 @@ function renderTiles(){
       (expanded ?
         '<div style="padding:0 12px 12px;">' +
           '<button data-theme-addq="'+t.id+'" style="border:1px dashed #C9CDD4;background:#FAFBFC;color:#5B6472;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:600;width:100%;margin-bottom:8px;">+ Ajouter une question</button>' +
-          '<div id="ddq-qrow-list-'+t.id+'">' + (rowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:4px 0;">Aucune question pour le moment.</div>') + '</div>' +
+          '<div id="ddq-qrow-list-'+t.id+'">' + (rowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:4px 0;">' + ((suiviStatutFilter !== "all" || suiviPriorityFilter !== "all") ? "Aucune question ne correspond au filtre." : "Aucune question pour le moment.") + '</div>') + '</div>' +
         '</div>'
         : '') +
     '</div>';
@@ -3144,7 +3199,7 @@ function renderTiles(){
   });
 
   state.themes.forEach(function(baseT){
-    if (expandedThemes[baseT.id]) wireThemeRows(baseT.id, "ddq-qrow-list-"+baseT.id);
+    if (expandedThemes[baseT.id]) wireThemeRows(baseT.id, "ddq-qrow-list-"+baseT.id, !suiviFilterActive);
   });
 }
 
@@ -3324,8 +3379,9 @@ function renderEvolution(){
 
 function closeModalById(id){ var el = document.getElementById(id); if (el) el.remove(); }
 
-function buildThemeRowsHTML(themeId){
-  var qs = questionsFor(themeId);
+function buildThemeRowsHTML(themeId, qsOverride, dragEnabled){
+  var qs = qsOverride || questionsFor(themeId);
+  if (dragEnabled === undefined) dragEnabled = true;
   var dragHandleSvg = '<svg width="10" height="16" viewBox="0 0 10 16" style="display:block;pointer-events:none;">' +
       '<circle cx="2.5" cy="2.5" r="1.3" fill="#C9CDD4"></circle><circle cx="7.5" cy="2.5" r="1.3" fill="#C9CDD4"></circle>' +
       '<circle cx="2.5" cy="8" r="1.3" fill="#C9CDD4"></circle><circle cx="7.5" cy="8" r="1.3" fill="#C9CDD4"></circle>' +
@@ -3336,8 +3392,11 @@ function buildThemeRowsHTML(themeId){
     var pStyle = PRIO_STYLE[q.priorite] || PRIO_STYLE["Basse"];
     var sc = STATUT_COLOR[q.statut] || "#5B6472";
     var sbg = STATUT_BG[q.statut] || "#EEF0F3";
+    var dragHandle = dragEnabled
+      ? '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>'
+      : '<span style="flex-shrink:0;width:22px;height:26px;"></span>';
     return '<div data-q="'+q.id+'" class="ddq-qrow" style="cursor:pointer;border:1px solid #E2E5EA;border-radius:8px;padding:6px 8px 6px 4px;margin-bottom:5px;display:flex;align-items:center;gap:6px;transition:background .15s;">' +
-      '<span class="ddq-drag-handle" draggable="true" data-q="'+q.id+'" title="Glisser pour réordonner" style="cursor:grab;flex-shrink:0;width:22px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;">'+dragHandleSvg+'</span>' +
+      dragHandle +
       '<span title="Priorité : '+q.priorite+'" style="width:10px;height:10px;border-radius:50%;background:'+pStyle.c+';flex-shrink:0;box-shadow:0 0 0 2px '+pStyle.bg+';"></span>' +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:#1A1F2B;" title="'+esc(q.text)+'">'+esc(q.text)+'</span>' +
       '<span style="font-size:10px;font-weight:'+statutWeight(q.statut)+';color:'+sc+';background:'+sbg+';border-radius:9px;padding:2px 9px;white-space:nowrap;flex-shrink:0;">'+esc(q.statut)+'</span>' +
@@ -3346,7 +3405,8 @@ function buildThemeRowsHTML(themeId){
   }).join("");
 }
 
-function wireThemeRows(themeId, containerId){
+function wireThemeRows(themeId, containerId, dragEnabled){
+  if (dragEnabled === undefined) dragEnabled = true;
   var list = document.getElementById(containerId || "ddq-qrow-list");
   if (!list) return;
   Array.prototype.forEach.call(list.querySelectorAll(".ddq-qrow"), function(row){
@@ -3354,7 +3414,7 @@ function wireThemeRows(themeId, containerId){
       if (e.target.closest && e.target.closest(".ddq-drag-handle")) return;
       openQuestionModal(row.getAttribute("data-q"));
     });
-    wireRowDrag(row, themeId);
+    if (dragEnabled) wireRowDrag(row, themeId);
   });
 }
 
@@ -3647,12 +3707,12 @@ function messagesText(q){
 function attachmentsText(q){
   return (q.attachments||[]).map(function(a){ return a.name + (a.note ? " ("+a.note+")" : ""); }).join(", ");
 }
-var exportFilter = { statuts: [], owners: [], themes: [] };
+var exportFilter = { statuts: [], priorities: [], themes: [] };
 
 function buildRows(withComments){
   var filtered = state.questions.filter(function(q){
     if (exportFilter.statuts.length && exportFilter.statuts.indexOf(q.statut) === -1) return false;
-    if (exportFilter.owners.length && exportFilter.owners.indexOf(q.owner || "(Non assigné)") === -1) return false;
+    if (exportFilter.priorities.length && exportFilter.priorities.indexOf(q.priorite) === -1) return false;
     if (exportFilter.themes.length && exportFilter.themes.indexOf(q.theme) === -1) return false;
     return true;
   });
@@ -3842,14 +3902,14 @@ function wireExportButtons(){
   });
   document.getElementById("ddq-filter-apply").addEventListener("click", function(){
     var checked = Array.prototype.slice.call(document.querySelectorAll(".ddq-filter-cb:checked"));
-    var next = { statuts: [], owners: [], themes: [] };
+    var next = { statuts: [], priorities: [], themes: [] };
     checked.forEach(function(cb){ next[cb.getAttribute("data-filter-group")].push(cb.value); });
     exportFilter = next;
     updateExportFilterBadge();
     filterPanel.style.display = "none";
   });
   document.getElementById("ddq-filter-reset").addEventListener("click", function(){
-    exportFilter = { statuts: [], owners: [], themes: [] };
+    exportFilter = { statuts: [], priorities: [], themes: [] };
     updateExportFilterBadge();
     renderExportFilterPanel();
   });
@@ -3859,11 +3919,11 @@ function wireExportButtons(){
 function updateExportFilterBadge(){
   var badge = document.getElementById("ddq-filter-badge");
   if (!badge) return;
-  var active = exportFilter.statuts.length || exportFilter.owners.length || exportFilter.themes.length;
+  var active = exportFilter.statuts.length || exportFilter.priorities.length || exportFilter.themes.length;
   if (active) {
     var n = state.questions.filter(function(q){
       if (exportFilter.statuts.length && exportFilter.statuts.indexOf(q.statut) === -1) return false;
-      if (exportFilter.owners.length && exportFilter.owners.indexOf(q.owner || "(Non assigné)") === -1) return false;
+      if (exportFilter.priorities.length && exportFilter.priorities.indexOf(q.priorite) === -1) return false;
       if (exportFilter.themes.length && exportFilter.themes.indexOf(q.theme) === -1) return false;
       return true;
     }).length;
@@ -3876,9 +3936,7 @@ function updateExportFilterBadge(){
 
 function renderExportFilterPanel(){
   var statuts = STATUTS;
-  var owners = [];
-  state.questions.forEach(function(q){ var o = q.owner || "(Non assigné)"; if (owners.indexOf(o) === -1) owners.push(o); });
-  owners.sort();
+  var priorities = PRIORITIES;
   var themes = state.themes;
 
   function cbList(group, items, isChecked, getLabel, getValue){
@@ -3892,8 +3950,8 @@ function renderExportFilterPanel(){
 
   document.getElementById("ddq-filter-statuts").innerHTML = cbList("statuts", statuts,
     function(v){ return exportFilter.statuts.indexOf(v) !== -1; }, function(s){ return s; }, function(s){ return s; });
-  document.getElementById("ddq-filter-owners").innerHTML = cbList("owners", owners,
-    function(v){ return exportFilter.owners.indexOf(v) !== -1; }, function(o){ return o; }, function(o){ return o; });
+  document.getElementById("ddq-filter-priorities").innerHTML = cbList("priorities", priorities,
+    function(v){ return exportFilter.priorities.indexOf(v) !== -1; }, function(p){ return p; }, function(p){ return p; });
   document.getElementById("ddq-filter-themes").innerHTML = cbList("themes", themes,
     function(v){ return exportFilter.themes.indexOf(v) !== -1; }, function(t){ return t.label; }, function(t){ return t.id; });
 }
