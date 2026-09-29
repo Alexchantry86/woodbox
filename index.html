@@ -474,7 +474,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.16.2-firebase";
+var APP_VERSION = "2.17.0-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -1203,10 +1203,17 @@ function updateSaveIndicator(){
   el.textContent = timeLabel + " · " + modeLabel;
 }
 
+var UNCLASSIFIED_THEME_ID = "__unclassified__";
 function themeOf(id){
   var base = null;
   for (var i=0;i<state.themes.length;i++){ if (state.themes[i].id===id) { base = state.themes[i]; break; } }
-  if (!base) base = state.themes[0];
+  if (!base) {
+    // Le thème d'origine de cette question n'existe plus (thème supprimé/renommé
+    // sans réaffectation de ses questions) : on ne l'attribue plus silencieusement
+    // au premier thème de la liste, ce qui la faisait apparaître à tort dans un
+    // thème auquel elle n'appartient pas (visible seulement dans les exports).
+    return { id: UNCLASSIFIED_THEME_ID, label: "Non classé", code: "NC", color: "#9AA2AF", bg: "#EEF0F3" };
+  }
   var custom = state.themeNames && state.themeNames[base.id];
   if (custom) {
     var merged = {}; for (var k in base) merged[k] = base[k];
@@ -1216,6 +1223,11 @@ function themeOf(id){
   return base;
 }
 function questionsFor(themeId){ return state.questions.filter(function(q){ return q.theme===themeId; }); }
+function unclassifiedQuestions(){
+  var validIds = {};
+  state.themes.forEach(function(t){ validIds[t.id] = true; });
+  return state.questions.filter(function(q){ return !validIds[q.theme]; });
+}
 function findQ(id){ return state.questions.find(function(x){ return x.id===id; }); }
 function fmtDate(iso){ var d=new Date(iso); return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit"}) + " " + d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
 function fmtDay(iso){ var d=new Date(iso); return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}); }
@@ -3158,6 +3170,41 @@ function renderTiles(){
         : '') +
     '</div>';
   });
+
+  // Questions dont le thème d'origine n'existe plus (supprimé/renommé sans avoir été
+  // réaffectées) : affichées à part plutôt que perdues, pour pouvoir les reclasser.
+  var orphanQsAll = unclassifiedQuestions();
+  if (orphanQsAll.length) {
+    var orphanQs = orphanQsAll;
+    if (suiviStatutFilter.length) orphanQs = orphanQs.filter(function(q){ return suiviStatutFilter.indexOf(q.statut) !== -1; });
+    if (suiviPriorityFilter.length) orphanQs = orphanQs.filter(function(q){ return suiviPriorityFilter.indexOf(q.priorite) !== -1; });
+    var orphanExpanded = !!expandedThemes[UNCLASSIFIED_THEME_ID];
+    var orphanRowsHtml = buildThemeRowsHTML(UNCLASSIFIED_THEME_ID, orphanQs, false);
+    var orphanCounts = {};
+    STATUTS.forEach(function(s){ orphanCounts[s] = orphanQs.filter(function(q){ return q.statut===s; }).length; });
+    var orphanMiniBar = orphanQs.length
+      ? '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+          STATUTS.map(function(s){
+            return '<span title="'+esc(s)+'" style="min-width:22px;text-align:center;font-size:12px;font-weight:'+statutWeight(s)+';color:'+STATUT_COLOR[s]+';background:'+STATUT_BG[s]+';border-radius:6px;padding:2px 7px;">'+orphanCounts[s]+'</span>';
+          }).join("") +
+        '</div>'
+      : '<span style="font-size:10.5px;color:#C9CDD4;flex-shrink:0;">Aucune question</span>';
+    html += '<div data-theme-card="'+UNCLASSIFIED_THEME_ID+'" class="ddq-theme-card" style="background:#fff;border:1px dashed #C9CDD4;border-radius:9px;margin-bottom:6px;overflow:hidden;">' +
+      '<div data-theme-toggle="'+UNCLASSIFIED_THEME_ID+'" class="ddq-theme-row" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:9px 12px;flex-wrap:wrap;">' +
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9AA2AF" stroke-width="2.5" style="flex-shrink:0;transition:transform .15s;transform:rotate('+(orphanExpanded?90:0)+'deg);"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
+        '<div style="width:27px;height:27px;border-radius:7px;background:#EEF0F3;color:#9AA2AF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;">NC</div>' +
+        '<div style="flex:1;min-width:120px;font-size:13px;font-weight:600;color:#5B6472;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Non classé <span style="font-weight:400;color:#9AA2AF;">— thème d\'origine supprimé</span></div>' +
+        orphanMiniBar +
+      '</div>' +
+      (orphanExpanded ?
+        '<div style="padding:0 12px 12px;">' +
+          '<div style="font-size:11px;color:#9AA2AF;margin-bottom:8px;">Ces questions appartenaient à un thème qui a été supprimé. Ouvrez-les pour les reclasser dans un thème existant.</div>' +
+          '<div id="ddq-qrow-list-'+UNCLASSIFIED_THEME_ID+'">' + (orphanRowsHtml || '<div style="font-size:12.5px;color:#9AA2AF;padding:4px 0;">Aucune question ne correspond au filtre.</div>') + '</div>' +
+        '</div>'
+        : '') +
+    '</div>';
+  }
+
   html += '<button id="ddq-tile-add" style="cursor:pointer;background:#FAFBFC;border:1px dashed #C9CDD4;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#5B6472;font-size:12.5px;font-weight:600;">' +
     '<span style="font-size:18px;line-height:1;">+</span> Ajouter un thème' +
   '</button>';
@@ -3215,6 +3262,9 @@ function renderTiles(){
   state.themes.forEach(function(baseT){
     if (expandedThemes[baseT.id]) wireThemeRows(baseT.id, "ddq-qrow-list-"+baseT.id, !suiviFilterActive);
   });
+  if (orphanQsAll.length && expandedThemes[UNCLASSIFIED_THEME_ID]) {
+    wireThemeRows(UNCLASSIFIED_THEME_ID, "ddq-qrow-list-"+UNCLASSIFIED_THEME_ID, false);
+  }
 }
 
 function reorderThemes(orderedIds){
@@ -3614,7 +3664,13 @@ function openQuestionModal(qid){
       '<div class="ddq-modal" style="max-width:560px;">' +
         '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #E2E5EA;padding:14px 20px;border-radius:14px 14px 0 0;">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">' +
-            '<div style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;">'+esc(t.label)+'</div>' +
+            '<select id="ddq-f-theme" style="font-size:11px;font-weight:600;color:'+t.color+';text-transform:uppercase;letter-spacing:.02em;border:1px solid transparent;background:transparent;border-radius:6px;padding:2px 4px;margin:-2px -4px;max-width:70%;">' +
+              (q.theme && t.id === UNCLASSIFIED_THEME_ID ? '<option value="" disabled selected>NON CLASSÉ — CHOISIR UN THÈME</option>' : '') +
+              state.themes.map(function(th){
+                var label = themeOf(th.id).label;
+                return '<option value="'+esc(th.id)+'"'+(th.id===q.theme?' selected':'')+'>'+esc(label)+'</option>';
+              }).join("") +
+            '</select>' +
             '<button id="ddq-q-close" style="border:1px solid #E2E5EA;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:#5B6472;flex-shrink:0;">Fermer</button>' +
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
@@ -3645,6 +3701,14 @@ function openQuestionModal(qid){
     if (e.target.id === "ddq-overlay-question") closeModalById("ddq-overlay-question");
   });
   document.getElementById("ddq-q-close").addEventListener("click", function(){ closeModalById("ddq-overlay-question"); });
+
+  document.getElementById("ddq-f-theme").addEventListener("change", function(e){
+    q.theme = e.target.value;
+    persist();
+    closeModalById("ddq-overlay-question");
+    render();
+    openQuestionModal(qid);
+  });
 
   var textEl = document.getElementById("ddq-f-text");
   textEl.addEventListener("focus", function(){ textEl.style.border = "1px solid #E2E5EA"; });
@@ -3733,6 +3797,7 @@ function buildRows(withComments){
   return filtered.map(function(q){
     var t = themeOf(q.theme);
     var row = {
+      "ID": q.id,
       "Thème": t.label,
       "Question": q.text,
       "Priorité": q.priorite,
@@ -3779,8 +3844,8 @@ function exportExcel(withComments){
   if (typeof XLSX !== "undefined") {
     var ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = withComments
-      ? [{wch:22},{wch:60},{wch:10},{wch:22},{wch:12},{wch:50},{wch:30}]
-      : [{wch:22},{wch:60},{wch:10},{wch:22},{wch:12}];
+      ? [{wch:14},{wch:22},{wch:60},{wch:10},{wch:22},{wch:12},{wch:50},{wch:30}]
+      : [{wch:14},{wch:22},{wch:60},{wch:10},{wch:22},{wch:12}];
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Due Diligence");
     XLSX.writeFile(wb, filename);
@@ -3799,17 +3864,17 @@ function exportPDF(withComments){
     doc.setFontSize(9);
     doc.text(new Date().toLocaleDateString("fr-FR"), 30, 44);
     var head = withComments
-      ? [["Thème","Question","Priorité","Owner","Statut","Échanges","Pièces jointes"]]
-      : [["Thème","Question","Priorité","Owner","Statut"]];
+      ? [["ID","Thème","Question","Priorité","Owner","Statut","Échanges","Pièces jointes"]]
+      : [["ID","Thème","Question","Priorité","Owner","Statut"]];
     var body = rows.map(function(r){
       return withComments
-        ? [r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"], r["Échanges"], r["Pièces jointes"]]
-        : [r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"]];
+        ? [r["ID"], r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"], r["Échanges"], r["Pièces jointes"]]
+        : [r["ID"], r["Thème"], r["Question"], r["Priorité"], r["Owner"], r["Statut"]];
     });
     doc.autoTable({
       head: head, body: body, startY: 56, styles: { fontSize: 7.5, cellPadding: 4, overflow: "linebreak" },
       headStyles: { fillColor: [20,40,80] },
-      columnStyles: withComments ? { 1: { cellWidth: 170 }, 5: { cellWidth: 160 } } : { 1: { cellWidth: 260 } }
+      columnStyles: withComments ? { 0: { cellWidth: 55 }, 2: { cellWidth: 170 }, 6: { cellWidth: 160 } } : { 0: { cellWidth: 55 }, 2: { cellWidth: 260 } }
     });
     doc.save(filename);
   } else {
