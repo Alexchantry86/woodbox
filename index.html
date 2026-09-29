@@ -217,7 +217,7 @@
           <div style="font-size:11px;font-weight:600;color:#142850;margin-bottom:6px;">Thème</div>
           <div id="ddq-filter-themes" style="margin-bottom:12px;"></div>
           <div style="display:flex;gap:8px;">
-            <button id="ddq-filter-apply" style="flex:1;background:#142850;color:#fff;border:none;border-radius:6px;padding:7px;font-size:12px;font-weight:600;">Appliquer</button>
+            <button id="ddq-filter-apply" style="flex:1;background:#142850;color:#fff;border:none;border-radius:6px;padding:7px;font-size:12px;font-weight:600;">Fermer</button>
             <button id="ddq-filter-reset" style="background:#fff;border:1px solid #E2E5EA;color:#5B6472;border-radius:6px;padding:7px 12px;font-size:12px;">Réinitialiser</button>
           </div>
         </div>
@@ -474,7 +474,7 @@ function seedQuestions(){
   ];
 }
 
-var APP_VERSION = "2.16.1-firebase";
+var APP_VERSION = "2.16.2-firebase";
 var STORAGE_KEY = "wood-box-dd-tracker-data";
 var STORAGE_KEY_LEGACY = "wood-box-dd-tracker-questions";
 var state = { questions: [], themeNames: {}, myName: "", lastSaved: null, storageMode: "none", libraryDocs: [] };
@@ -3915,11 +3915,7 @@ function wireExportButtons(){
     }
   });
   document.getElementById("ddq-filter-apply").addEventListener("click", function(){
-    var checked = Array.prototype.slice.call(document.querySelectorAll(".ddq-filter-cb:checked"));
-    var next = { statuts: [], priorities: [], themes: [] };
-    checked.forEach(function(cb){ next[cb.getAttribute("data-filter-group")].push(cb.value); });
-    exportFilter = next;
-    updateExportFilterBadge();
+    applyCheckedFilters();
     filterPanel.style.display = "none";
   });
   document.getElementById("ddq-filter-reset").addEventListener("click", function(){
@@ -3927,6 +3923,18 @@ function wireExportButtons(){
     updateExportFilterBadge();
     renderExportFilterPanel();
   });
+  updateExportFilterBadge();
+}
+
+// Lit toutes les cases cochées du panneau et met à jour exportFilter immédiatement
+// (appelé à chaque clic sur une case, pas seulement sur "Appliquer" — évite qu'une
+// sélection non validée soit silencieusement ignorée si l'utilisateur lance un
+// téléchargement sans avoir cliqué sur "Appliquer" au préalable).
+function applyCheckedFilters(){
+  var checked = Array.prototype.slice.call(document.querySelectorAll(".ddq-filter-cb:checked"));
+  var next = { statuts: [], priorities: [], themes: [] };
+  checked.forEach(function(cb){ next[cb.getAttribute("data-filter-group")].push(cb.value); });
+  exportFilter = next;
   updateExportFilterBadge();
 }
 
@@ -3968,6 +3976,12 @@ function renderExportFilterPanel(){
     function(v){ return exportFilter.priorities.indexOf(v) !== -1; }, function(p){ return p; }, function(p){ return p; });
   document.getElementById("ddq-filter-themes").innerHTML = cbList("themes", themes,
     function(v){ return exportFilter.themes.indexOf(v) !== -1; }, function(t){ return t.label; }, function(t){ return t.id; });
+
+  // Chaque case coche/décoche met à jour exportFilter tout de suite : pas besoin de
+  // cliquer sur "Appliquer" pour que le filtre soit pris en compte par un export.
+  Array.prototype.forEach.call(document.querySelectorAll(".ddq-filter-cb"), function(cb){
+    cb.addEventListener("change", applyCheckedFilters);
+  });
 }
 
 wireExportButtons();
